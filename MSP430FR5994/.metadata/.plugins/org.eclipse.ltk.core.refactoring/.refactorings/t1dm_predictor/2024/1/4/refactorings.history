@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Rename resource &apos;t1dm_predictor/Debug&apos; to &apos;Debug_TI&apos;" description="Rename resource &apos;Debug&apos;" flags="7" id="org.eclipse.ltk.core.refactoring.rename.resource" input="Debug" name="Debug_TI" stamp="1706031172918" updateReferences="true"/>
+</session>

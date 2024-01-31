@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">&#x0A;<refactoring comment="Rename resource &apos;td1m_predictor/Debug&apos; to &apos;Debug__TI&apos;" description="Rename resource &apos;Debug&apos;" flags="7" id="org.eclipse.ltk.core.refactoring.rename.resource" input="Debug" name="Debug__TI" stamp="1706032525144" updateReferences="true"/>&#x0A;<refactoring comment="Rename resource &apos;td1m_predictor/lnk_msp430fr5994.cmd&apos; to &apos;lnk_msp430fr5994_new.cmd&apos;" description="Rename resource &apos;lnk_msp430fr5994.cmd&apos;" flags="7" id="org.eclipse.ltk.core.refactoring.rename.resource" input="lnk_msp430fr5994.cmd" name="lnk_msp430fr5994_new.cmd" stamp="1706035018533" updateReferences="true"/>
+</session>
