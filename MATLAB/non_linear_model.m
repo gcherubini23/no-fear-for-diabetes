@@ -170,6 +170,7 @@ function [new_Il, new_Ip, new_Id, new_I1, new_X, new_Ipo, new_Y] = insulin_secre
     new_I1 = x.I1 + dt * (-params.ki * (x.I1 - It));
     new_Id = x.Id + dt * (-params.ki * (x.Id - x.I1));
 
+    
 end
 
 
