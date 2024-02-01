@@ -79,7 +79,7 @@ function [new_Gp, new_Gt, new_Gsc] = glucose_subystem(x,params,dt)
     end
 
     % Subcutaneous glucose
-    new_Gsc = x.Gsc + dt * (-1/params.Td * x.Gsc + 1/params.Td * x.Gp);
+    new_Gsc = x.Gsc + dt * (-params.ksc * x.Gsc + params.ksc * x.Gp);
     if new_Gsc < 0
         new_Gsc = 0;
     end

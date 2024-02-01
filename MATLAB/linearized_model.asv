@@ -23,6 +23,43 @@ dt = 0.1;
 % x(t+dt) = x(t) + dt * (A(t) * x(t) + B(t) * u(t) + D(t))
 % z(t) = C * x(t)
 
+function [dEGPt_dGp, dEGPt_dId, bias_Gp_EGPt, dEt_dGp, bias_Gp_Et, dUidt_dGt, dUidt_dX, kgut] = evaluate_linear_model(x,lastQsto,lastfoodtaken)
+    % Partial derivative for Endogenous glucose production (EGPt)
+    if (params.kp1 - params.kp2 * x.Gp - params.kp3 * x.Id > 0)
+        dEGPt_dGp = -params.kp2;
+        dEGPt_dId = -params.kp3;
+        bias_Gp_EGPt = params.kp1;
+    else
+        dEGPt_dGp = 0;
+        dEGPt_dId = 0;
+        bias_Gp_EGPt = 0;
+    end
+    
+    % Partial derivative for renal excretion (Et)
+    if (x.Gp - params.ke2) > 0
+        dEt_dGp = params.ke1;
+        bias_Gp_Et = -params.ke1*params.ke2;
+    else
+        dEt_dGp = 0;
+        bias_Gp_Et = 0;
+    end
+    
+    % Non-linear term Gt
+    dUidt_dGt = (params.Vm0 + params.Vmx * x.X) * params.Km0 / ((params.Km0 + x.Gt)^2);
+    dUidt_dX = params.Vmx * x.Gt / (params.Km0 + x.Gt);
+    
+    % Kgut value
+    Qsto = x.Qsto1 + x.Qsto2;
+    Dbar = lastQsto + lastfoodtaken * 1000;
+    if Dbar > 0
+        aa = 5 / (2 * (1 - params.b) * Dbar);
+        cc = 5 / (2 * params.d * Dbar);
+        kgut = params.kmin + (params.kmax - params.kmin) / 2 * (tanh(aa * (Qsto - params.b * Dbar)) - tanh(cc * (Qsto - params.d * Dbar)) + 2);
+    else
+        kgut = params.kmax;
+    end
+end
+
 % Matrices
 A = [-params.kgri, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
      params.kgri, -kgut, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
@@ -30,7 +67,7 @@ A = [-params.kgri, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
 
      0, 0, params.f*params.kabs/params.BW, -params.k1+dEGPt_dGp-dEt_dGp, params.k2, 0, 0, 0, 0, 0, 0, 0, 0;
      0, 0, 0, params.k1, -params.k2-dUidt_dGt, 0, 0, 0, 0, 0, -dUidt_dX, 0, 0;
-     0, 0, 0, 1/params.Td, 0, -1/params.Td, 0, 0, 0, 0, 0, 0, 0;
+     0, 0, 0, params.ksc, 0, -params.ksc, 0, 0, 0, 0, 0, 0, 0;
 
      0, 0, 0, 0, 0, 0, -params.m1-params.m30, -params.m2, 0, 0, 0, 0, 0;
      0, 0, 0, 0, 0, 0, params.m1, -params.m2-params.m4, 0, 0, 0, params.ka1, params.ka2;
@@ -71,40 +108,4 @@ D = [0;
      0;
      0];
 
-function [dEGPt_dGp, dEGPt_dId, bias_Gp_EGPt, dEt_dGp, bias_Gp_Et, dUidt_dGt, dUidt_dX, kgut] = evaluate_linear_model(x,lastQsto,lastfoodtaken)
-    % Partial derivative for Endogenous glucose production (EGPt)
-    if (params.kp1 - params.kp2 * x.Gp - params.kp3 * x.Id > 0)
-        dEGPt_dGp = -params.kp2;
-        dEGPt_dId = -params.kp3;
-        bias_Gp_EGPt = params.kp1;
-    else
-        dEGPt_dGp = 0;
-        dEGPt_dId = 0;
-        bias_Gp_EGPt = 0;
-    end
-    
-    % Partial derivative for renal excretion (Et)
-    if (x.Gp - params.ke2) > 0
-        dEt_dGp = params.ke1;
-        bias_Gp_Et = -params.ke1*params.ke2;
-    else
-        dEt_dGp = 0;
-        bias_Gp_Et = 0;
-    end
-    
-    % Non-linear term Gt
-    dUidt_dGt = (params.Vm0 + params.Vmx * x.X) * params.Km0 / ((params.Km0 + x.Gt)^2);
-    dUidt_dX = params.Vmx * x.Gt / (params.Km0 + x.Gt);
-    
-    % Kgut value
-    Qsto = x.Qsto1 + x.Qsto2;
-    Dbar = lastQsto + lastfoodtaken * 1000;
-    if Dbar > 0
-        aa = 5 / (2 * (1 - params.b) * Dbar);
-        cc = 5 / (2 * params.d * Dbar);
-        kgut = params.kmin + (params.kmax - params.kmin) / 2 * (tanh(aa * (Qsto - params.b * Dbar)) - tanh(cc * (Qsto - params.d * Dbar)) + 2);
-    else
-        kgut = params.kmax;
-    end
-end
 

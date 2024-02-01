@@ -21,11 +21,9 @@ params.m6 = 0.6471;
 params.kmax = 0.0558;
 params.kmin = 0.0080;
 params.kabs = 0.0570;
-params.kgri = 0.0558;
+params.kgri = params.kmax;
 params.f = 0.9;
-params.a = 0.00013;
 params.b = 0.82;
-params.c = 0.00236;
 params.d = 0.010;
 % Endogenous Glucose Production
 params.kp1 = 2.70;
@@ -48,17 +46,16 @@ params.gamma = 0.5;
 params.kd = 0.0164;
 params.ka1 = 0.0018;
 params.ka2 = 0.0182;
-% params.Td = 10; % glucose sensor delay tbd
 % Renal Excretion
 params.ke1 = 0.0005;
 params.ke2 = 339;
 
 % Extra
 params.BW = 60; % body weight
-params.u2ss = 1.5; % steady state insulin rate
+params.eat_rate = 5;
+params.u2ss = 0.001; % steady state (basal) insulin rate
 params.Ib = 115;
-params.ksc = 0.09;
-params.kgut = params.kmax;
+params.Td = 10; % glucose sensor delay (tbd)
 
 % Extra for insulin secretion
 params.h = 0; % to be set to Gb (basal glucose)
