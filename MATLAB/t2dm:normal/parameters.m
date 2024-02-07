@@ -1,0 +1,58 @@
+% Patient features
+params.BW = 60; % body weight [kg]
+params.eat_rate = 5; % [g/min]
+
+% To be measured at basal state
+params.Gb = 200;
+params.Ib = 200;
+
+% Sensor features
+params.Td = 10; % glucose sensor delay (tbd)
+
+% Glucose Kinetics
+params.VG = 1.88;
+params.k1 = 0.065;
+params.k2 = 0.079;
+params.Gpb = params.Gb * params.VG; % basal glucose in plasma
+% Insulin Kinetics
+params.VI = 0.05;
+params.HEb = 0.6;
+params.m1 = 0.190;
+params.m2 = 0.484;
+params.m4 = 0.194;
+params.m5 = 0.0304;
+params.m6 = 0.6471;
+params.Ipb = params.Ib * params.VI;
+params.Ilb; % TBD
+params.Ipob; % TBD
+% Rate of Appearance
+params.kmax = 0.0558;
+params.kmin = 0.0080;
+params.kabs = 0.0570;
+params.kgri = params.kmax;
+params.f = 0.9;
+params.b = 0.82;
+params.d = 0.010;
+% Endogenous Glucose Production
+params.kp1 = 2.70;
+params.kp2 = 0.0021;
+params.kp3 = 0.009;
+params.kp4 = 0.0618;
+params.ki = 0.0079;
+params.EGPb = params.kp1 - params.kp2 * params.Gpb - params.kp3 * params.Ib + params.kp4 * params.Ipob;    
+% Utilization
+params.Fcns = 1;
+params.Gtb = 1 / params.k2 * (params.Fcns - params.EGPb + params.k1 * params.Gpb);  % basal glucose in slowly equilibrating tissues
+params.Vm0 = (params.EGPb - params.Fcns) * (params.Km0 + params.Gtb) / params.Gtb;
+params.Vmx = 0.047;
+params.Km0 = 225.59;
+params.p2U = 0.0331;
+% Renal Excretion
+params.ke1 = 0.0005;
+params.ke2 = 339;
+% Insulin Secretion
+params.K = 2.30;
+params.alpha = 0.05;
+params.beta = 0.11;
+params.gamma = 0.5;
+params.Sb; % TBD
