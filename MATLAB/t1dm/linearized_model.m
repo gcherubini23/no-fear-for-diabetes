@@ -4,9 +4,6 @@
 % v[k] = W[k] * x[k] + M[k] * y[k] + T[k] * u[k]
 % z[k] = H * x[k]
 
-% x(t+dt) = x(t) + dt * (A(t) * x(t) + B(t) * v(t) + D(t))
-% z(t) = H * x(t)
-
 classdef linearized_model
     properties
         A;
@@ -14,11 +11,11 @@ classdef linearized_model
         H;
         D;
         state_fields = {'Qsto1','Qsto2','Qgut','Gp','Gt','Gsc','Il','Ip','Id','I1','X','Isc1','Isc2'};
-        true_input_fields = {'CHO_consumed','IIR'};
+        true_input_fields = {'CHO_consumed_rate','IIR'};
     end
 
     methods
-        function obj = linearized_model()
+        function obj = linearized_model(params)
             obj.B = [1000, 0;
                      0, 0;
                      0, 0;

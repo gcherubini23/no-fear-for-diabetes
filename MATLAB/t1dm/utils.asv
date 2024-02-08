@@ -44,18 +44,14 @@ classdef utils
         function obj = utils()
         end
         
-        function x_pred = euler_solve(obj, x, x_next, dt)
+        function x_pred = solve(obj, current_x, x_next, dt)
             vec_x = obj.convert_to_vector(x);
             vec_x_next = obj.convert_to_vector(x_next);
 
             % Euler method
-            vec_x_pred = vec_x + dt * vec_x_next;
+            vec_x_pred = vec_x + dt * vec_dx_dt;
 
             x_pred = obj.convert_to_struct(vec_x_pred);
-        end
-
-        function x_pred = rk2_solve()
-
         end
 
         function vec = convert_to_vector(obj, s)

@@ -46,9 +46,9 @@ params.EGPb = params.kp1 - params.kp2 * params.Gpb - params.kp3 * params.Ib;
 % Utilization
 params.Fcns = 1;
 params.Gtb = 1 / params.k2 * (params.Fcns - params.EGPb + params.k1 * params.Gpb);  % basal glucose in slowly equilibrating tissues
+params.Km0 = 225.59;
 params.Vm0 = (params.EGPb - params.Fcns) * (params.Km0 + params.Gtb) / params.Gtb;
 params.Vmx = 0.047;
-params.Km0 = 225.59;
 params.p2U = 0.0331;
 % Insulin Infusion
 params.kd = 0.0164;
