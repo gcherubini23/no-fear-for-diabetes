@@ -1,3 +1,7 @@
+% IT IS OUTDATED, USE SAME FORMULATION AS T1DM MODEL AND JUST REFER TO THIS
+% MODEL FOR THE SECRETION SUBSYSTEM
+
+
 %% States and inputs definition
 
 state_fields = {'Qsto1','Qsto2','Qgut','Gp','Gt','Gsc','Il','Ip','Id','I1','X','Ipo','Y'};

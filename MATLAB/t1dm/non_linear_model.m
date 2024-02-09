@@ -10,7 +10,11 @@ classdef non_linear_model
     end
 
     methods
-    
+        function obj = non_linear_model()
+        end
+    end
+
+    methods(Static)
         function dx_dt = step(x,y,v,params)
             
             [dQsto1_dt, dQsto2_dt, dQgut_dt] = gastro_intestinal_tract(x,y,v,params);
@@ -96,7 +100,7 @@ classdef non_linear_model
             Uidt = (Vmt * x.Gt) / (Kmt + x.Gt);
         
             % Glucose renal excretion
-            Et = max(params.ke1 * (x.Gp - params.ke2), 0);
+            Et = max(0, params.ke1 * (x.Gp - params.ke2));
         
             % Glucose kinetics
             dGp_dt = max(0, EGPt + Rat - Uiit - Et - params.k1 * x.Gp + params.k2 * x.Gt);

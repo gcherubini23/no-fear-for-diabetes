@@ -3,6 +3,9 @@ classdef utils
     properties
         state_fields = {'Qsto1','Qsto2','Qgut','Gp','Gt','Gsc','Il','Ip','Id','I1','X','Isc1','Isc2'};
         true_input_fields = {'CHO_consumed_rate','IIR'};
+        CGMs;
+        IIRs;
+        CHOs;
     end
 
     methods(Static)         
@@ -26,22 +29,11 @@ classdef utils
             y0.lastQsto = 0;
             y0.is_eating = false;
         end
-        
-        function z = sense(filename)
-        
-        end
-
-        function CHO = announce_meal(filename)
-
-        end
-
-        function IIR = insulin_injection(filename)
-
-        end
     end
 
     methods
-        function obj = utils()
+        function obj = utils(filename)
+            obj = obj.read_file(filename);
         end
         
         function x_pred = euler_solve(obj, x, x_next, dt)
@@ -54,9 +46,9 @@ classdef utils
             x_pred = obj.convert_to_struct(vec_x_pred);
         end
 
-        function x_pred = rk2_solve()
-
-        end
+        % function x_pred = rk2_solve()
+        % 
+        % end
 
         function vec = convert_to_vector(obj, s)
             % Define field names based on the number of elements in the struct
@@ -88,6 +80,12 @@ classdef utils
             end
         end
 
+        function obj = read_file(obj, filename)
+            dataTable = readtable(filename);
+            obj.CGMs = dataTable.CGM; 
+            obj.IIRs = dataTable.insulin;
+            obj.CHOs = dataTable.CHO; 
+        end
 
     end
 

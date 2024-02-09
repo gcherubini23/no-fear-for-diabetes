@@ -6,7 +6,7 @@ classdef ekf
     H = [0,0,0,0,0,1,0,0,0,0,0,0,0];
 
     K = 0;
-    Q;
+    Q;  % needs to be tuned depending the dt!!!
     R;
 
     state_fields;
@@ -15,7 +15,7 @@ classdef ekf
     end
 
     methods
-        function obj = ekf(params, state_fields)           
+        function obj = ekf(params, state_fields, R)           
             obj.B = [1000, 0;
                      0, 0;
                      0, 0;
@@ -31,6 +31,7 @@ classdef ekf
                      0, 0];
 
             obj.state_fields = state_fields;
+            obj.R = R;
         end
 
         function vec = convert_to_vector(obj, s)
@@ -66,6 +67,10 @@ classdef ekf
         function obj = update_matrices(obj, A, D)
            obj.A = A;
            obj.D = D;
+        end
+
+        function obj = set_process_noise(obj, Q)
+            obj.Q = Q;
         end
 
         function [xp_new, Pp] = process_update(obj, x, v, P)
