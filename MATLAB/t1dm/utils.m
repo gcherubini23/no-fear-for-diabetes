@@ -6,6 +6,7 @@ classdef utils
         CGMs;
         IIRs;
         CHOs;
+        BGs;
     end
 
     methods(Static)         
@@ -15,7 +16,7 @@ classdef utils
             x0.Qgut = 0;
             x0.Gp = params.Gpb;
             x0.Gt = params.Gtb;
-            x0.Gsc = params.Gpb;
+            x0.Gsc = params.Gb;
             x0.Il = params.Ilb;
             x0.Ip = params.Ipb;
             x0.Id = params.Ib;
@@ -35,20 +36,6 @@ classdef utils
         function obj = utils(filename)
             obj = obj.read_file(filename);
         end
-        
-        function x_pred = euler_solve(obj, x, x_next, dt)
-            vec_x = obj.convert_to_vector(x);
-            vec_x_next = obj.convert_to_vector(x_next);
-
-            % Euler method
-            vec_x_pred = vec_x + dt * vec_x_next;
-
-            x_pred = obj.convert_to_struct(vec_x_pred);
-        end
-
-        % function x_pred = rk2_solve()
-        % 
-        % end
 
         function vec = convert_to_vector(obj, s)
             % Define field names based on the number of elements in the struct
@@ -84,7 +71,8 @@ classdef utils
             dataTable = readtable(filename);
             obj.CGMs = dataTable.CGM; 
             obj.IIRs = dataTable.insulin;
-            obj.CHOs = dataTable.CHO; 
+            obj.CHOs = dataTable.CHO;
+            obj.BGs = dataTable.BG;
         end
 
     end

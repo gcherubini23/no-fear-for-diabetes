@@ -8,6 +8,8 @@ classdef ekf
     K = 0;
     Q;  % needs to be tuned depending the dt!!!
     R;
+    
+    dt;
 
     state_fields;
     true_input_fields = {'CHO_consumed_rate','IIR'};
@@ -15,7 +17,7 @@ classdef ekf
     end
 
     methods
-        function obj = ekf(params, state_fields, R)           
+        function obj = ekf(params, state_fields, dt, Q, R)           
             obj.B = [1000, 0;
                      0, 0;
                      0, 0;
@@ -31,7 +33,9 @@ classdef ekf
                      0, 0];
 
             obj.state_fields = state_fields;
+            obj.Q = Q;
             obj.R = R;
+            obj.dt = dt;
         end
 
         function vec = convert_to_vector(obj, s)
@@ -64,23 +68,39 @@ classdef ekf
             end
         end
 
+        function x_pred = euler_solve(obj, x, x_next, dt)
+            vec_x = obj.convert_to_vector(x);
+            vec_x_next = obj.convert_to_vector(x_next);
+
+            % Euler method
+            % vec_x_pred = max(0, vec_x + dt * vec_x_next);
+            vec_x_pred = vec_x + dt * vec_x_next;
+
+            x_pred = obj.convert_to_struct(vec_x_pred);
+        end
+
         function obj = update_matrices(obj, A, D)
            obj.A = A;
            obj.D = D;
         end
 
-        function obj = set_process_noise(obj, Q)
-            obj.Q = Q;
-        end
-
         function [xp_new, Pp] = process_update(obj, x, v, P)
+            % vec_x = obj.convert_to_vector(x);
+            % vec_v = obj.convert_to_vector(v);
+            % 
+            % vec_x_new = max(zeros(numel(obj.state_fields),1), obj.A * vec_x + obj.B * vec_v + obj.D);   % ensured to be non-negative
+            % Pp = obj.A * P * transpose(obj.A) + obj.Q;
+            % 
+            % xp_new = obj.convert_to_struct(vec_x_new);
+
             vec_x = obj.convert_to_vector(x);
             vec_v = obj.convert_to_vector(v);
 
-            vec_x_new = obj.A * vec_x + obj.B * vec_v + obj.D;
+            vec_dx_dt = obj.A * vec_x + obj.B * vec_v + obj.D;
+            dx_dt = obj.convert_to_struct(vec_dx_dt);
+
+            xp_new = obj.euler_solve(x,dx_dt,obj.dt);
             Pp = obj.A * P * transpose(obj.A) + obj.Q;
-            
-            xp_new = obj.convert_to_struct(vec_x_new);
         end
 
         function [xm, Pm] = measurement_update(obj, xp, Pp, z)

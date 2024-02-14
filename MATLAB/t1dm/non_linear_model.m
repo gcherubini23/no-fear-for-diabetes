@@ -12,17 +12,18 @@ classdef non_linear_model
     methods
         function obj = non_linear_model()
         end
+    
+        function dx_dt = step(obj,x,y,v,params)
+                
+                [dQsto1_dt, dQsto2_dt, dQgut_dt] = obj.gastro_intestinal_tract(x,y,v,params);
+                [dGp_dt, dGt_dt, dGsc_dt] = obj.glucose_subystem(x,params);
+                [dIl_dt, dIp_dt, dI1_dt, dId_dt, dX_dt, dIsc1_dt, dIsc2_dt] = obj.insulin_infusion_subsystem(x,v,params);
+            
+                dx_dt = struct('Qsto1',dQsto1_dt,'Qsto2',dQsto2_dt,'Qgut',dQgut_dt,'Gp',dGp_dt,'Gt',dGt_dt,'Gsc',dGsc_dt,'Il',dIl_dt,'Ip',dIp_dt,'Id',dId_dt,'I1',dI1_dt,'X',dX_dt,'Isc1',dIsc1_dt,'Isc2',dIsc2_dt);
+        end
     end
 
     methods(Static)
-        function dx_dt = step(x,y,v,params)
-            
-            [dQsto1_dt, dQsto2_dt, dQgut_dt] = gastro_intestinal_tract(x,y,v,params);
-            [dGp_dt, dGt_dt, dGsc_dt] = glucose_subystem(x,params);
-            [dIl_dt, dIp_dt, dI1_dt, dId_dt, dX_dt, dIsc1_dt, dIsc2_dt] = insulin_infusion_subsystem(x,v,params);
-        
-            dx_dt = struct('Qsto1',dQsto1_dt,'Qsto2',dQsto2_dt,'Qgut',dQgut_dt,'Gp',dGp_dt,'Gt',dGt_dt,'Gsc',dGsc_dt,'Il',dIl_dt,'Ip',dIp_dt,'Id',dId_dt,'I1',dI1_dt,'X',dX_dt,'Isc1',dIsc1_dt,'Isc2',dIsc2_dt);
-        end
         
         function [y, v] = preprocess(x,y_old,u,params,dt)
             % What are the true inputs?
@@ -67,7 +68,7 @@ classdef non_linear_model
         
         function [dQsto1_dt, dQsto2_dt, dQgut_dt] = gastro_intestinal_tract(x,y,v,params) 
             % Stomach
-            dQsto1_dt = -params.kgri * x.Qsto1 + v.CHO_consumed_rate * 1000;
+            dQsto1_dt = (-params.kgri * x.Qsto1 + v.CHO_consumed_rate * 1000);
             
             Qsto = x.Qsto1 + x.Qsto2;
             Dbar = y.lastQsto + y.D;
@@ -79,7 +80,7 @@ classdef non_linear_model
                 kgut = params.kmax;
             end
         
-            dQsto2_dt = params.kgri * x.Qsto1 - kgut * x.Qsto2;
+            dQsto2_dt = (params.kgri * x.Qsto1 - kgut * x.Qsto2);
         
             % Intestine
             dQgut_dt = kgut * x.Qsto2 - params.kabs * x.Qgut;
@@ -103,12 +104,21 @@ classdef non_linear_model
             Et = max(0, params.ke1 * (x.Gp - params.ke2));
         
             % Glucose kinetics
-            dGp_dt = max(0, EGPt + Rat - Uiit - Et - params.k1 * x.Gp + params.k2 * x.Gt);
+            dGp_dt = EGPt + Rat - Uiit - Et - params.k1 * x.Gp + params.k2 * x.Gt;
+            if x.Gp <= 0
+                dGp_dt = 0;
+            end
             
-            dGt_dt = max(0, -Uidt + params.k1 * x.Gp - params.k2 * x.Gt);
+            dGt_dt = -Uidt + params.k1 * x.Gp - params.k2 * x.Gt;
+            if x.Gt <= 0
+                dGt_dt = 0;
+            end
         
             % Subcutaneous glucose
-            dGsc_dt = max(0, -1/params.Td * x.Gsc + 1/params.Td * x.Gp);
+            dGsc_dt = -1/params.Td * x.Gsc + 1/params.Td * x.Gp / params.VG;
+            if x.Gsc <= 0
+                dGsc_dt = 0;
+            end
         
         end
         
@@ -116,18 +126,18 @@ classdef non_linear_model
             insulin = v.IIR * 6000 / params.BW;
         
             % Liver Insulin kinetics
-            dIl_dt = max(0, -(params.m1 + params.m30) * x.Il + params.m2 * x.Ip);
+            dIl_dt = (-(params.m1 + params.m30) * x.Il + params.m2 * x.Ip) * (x.Il >= 0);
         
             % Subcutaneous insulin kinetics
-            dIsc1_dt = max(0, insulin - (params.kd + params.ka1) * x.Isc1);
+            dIsc1_dt = (insulin - (params.kd + params.ka1) * x.Isc1) * (x.Isc1 >= 0);
         
-            dIsc2_dt = max(0, params.kd * x.Isc1 - params.ka2 * x.Isc2);
+            dIsc2_dt = (params.kd * x.Isc1 - params.ka2 * x.Isc2) * (x.Isc2 >= 0);
             
             % Appearance rate of insulin in plasma
             Rit = params.ka1 * x.Isc1 + params.ka2 * x.Isc2;
             
             % Plasma insulin kinetics (infusion)
-            dIp_dt = max(0, -(params.m2 + params.m4) * x.Ip + params.m1 * x.Il + Rit);
+            dIp_dt = (-(params.m2 + params.m4) * x.Ip + params.m1 * x.Il + Rit) * (x.Ip >= 0);
             It = x.Ip / params.VI;
         
             % Insulin action on glucose utilization
