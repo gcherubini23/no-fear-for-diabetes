@@ -4,13 +4,17 @@ classdef non_linear_model
 
     properties
         state_fields = {'Qsto1','Qsto2','Qgut','Gp','Gt','Gsc','Il','Ip','Id','I1','X','Isc1','Isc2'};
-        extra_state_fields = {'CHO_to_eat','D','lastQsto','is_eating'}; 
+        extra_state_fields = {'insulin_to_infuse','last_IIR','CHO_to_eat','D','lastQsto','is_eating'}; 
         input_fields = {'CHO', 'IIR'};
-        true_input_fields = {'CHO_consumed_rate','IIR'};
+        true_input_fields = {'CHO_consumed_rate','IIR_dt'};
+        tools;
+        G_MAX = 300;
+        % I_MAX = 
     end
 
     methods
-        function obj = non_linear_model()
+        function obj = non_linear_model(tools)
+            obj.tools = tools;
         end
     
         function dx_dt = step(obj,x,y,v,params)
@@ -21,12 +25,35 @@ classdef non_linear_model
             
                 dx_dt = struct('Qsto1',dQsto1_dt,'Qsto2',dQsto2_dt,'Qgut',dQgut_dt,'Gp',dGp_dt,'Gt',dGt_dt,'Gsc',dGsc_dt,'Il',dIl_dt,'Ip',dIp_dt,'Id',dId_dt,'I1',dI1_dt,'X',dX_dt,'Isc1',dIsc1_dt,'Isc2',dIsc2_dt);
         end
+  
     end
 
-    methods(Static)
-        
+    methods(Static)        
         function [y, v] = preprocess(x,y_old,u,params,dt)
             % What are the true inputs?
+            
+            % Insulin
+            if y_old.insulin_to_infuse <= 0
+                IIR_dt = u.IIR;
+            else
+                IIR_dt = y_old.last_IIR;
+            end
+            
+            insulin_to_infuse = y_old.insulin_to_infuse + u.IIR;  
+           
+            % Check if we have enough insulin to infuse for this time step.
+            if insulin_to_infuse < IIR_dt * dt
+                % If there isn't enough insulin to infuse, just infuse whatever is left.
+                IIR_dt = insulin_to_infuse / dt;
+            end
+
+            new_insulin_to_infuse = max(0, insulin_to_infuse - IIR_dt * dt);
+            epsilon = 1e-5;
+            if new_insulin_to_infuse <= epsilon
+                new_insulin_to_infuse = 0;
+            end
+            
+            % CHO
             if (y_old.CHO_to_eat / dt >= params.eat_rate) || (u.CHO / dt >= params.eat_rate && y_old.CHO_to_eat == 0)
                 CHO_consumed_rate = params.eat_rate;
             elseif (u.CHO > 0) && (u.CHO / dt < params.eat_rate) && (y_old.CHO_to_eat == 0)
@@ -34,9 +61,7 @@ classdef non_linear_model
             else
                 CHO_consumed_rate = y_old.CHO_to_eat / dt;
             end
-            
-            IIR = u.IIR;
-            
+
             % Update extra states
             new_CHO_to_eat = u.CHO + y_old.CHO_to_eat - CHO_consumed_rate * dt;
         
@@ -61,8 +86,8 @@ classdef non_linear_model
                 is_eating = y_old.is_eating;
             end
 
-            v = struct('CHO_consumed_rate',CHO_consumed_rate,'IIR',IIR);
-            y = struct('CHO_to_eat',new_CHO_to_eat,'D',new_D,'lastQsto',lastQsto,'is_eating',is_eating);
+            v = struct('CHO_consumed_rate',CHO_consumed_rate,'IIR_dt',IIR_dt);
+            y = struct('insulin_to_infuse',new_insulin_to_infuse,'last_IIR',IIR_dt,'CHO_to_eat',new_CHO_to_eat,'D',new_D,'lastQsto',lastQsto,'is_eating',is_eating);
 
         end
         
@@ -122,8 +147,8 @@ classdef non_linear_model
         
         end
         
-        function [dIl_dt, dIp_dt, dId_dt, dI1_dt, dX_dt, dIsc1_dt, dIsc2_dt] = insulin_infusion_subsystem(x,v,params)
-            insulin = v.IIR * 6000 / params.BW;
+        function [dIl_dt, dIp_dt, dId_dt, dI1_dt, dX_dt, dIsc1_dt, dIsc2_dt] = insulin_infusion_subsystem(x,v,params, dt)
+            insulin = v.IIR_dt * 6000 / params.BW;
         
             % Liver Insulin kinetics
             dIl_dt = (-(params.m1 + params.m30) * x.Il + params.m2 * x.Ip) * (x.Il >= 0);
@@ -140,12 +165,14 @@ classdef non_linear_model
             dIp_dt = (-(params.m2 + params.m4) * x.Ip + params.m1 * x.Il + Rit) * (x.Ip >= 0);
             It = x.Ip / params.VI;
         
-            % Insulin action on glucose utilization
+            % Insulin
             dX_dt = params.p2U * (-x.X + It - params.Ib);
+
+            dI1_dt = -params.ki * (x.I1 - It)
             
-            % Insulin action on glucose production
-            dI1_dt = -params.ki * (x.I1 - It);
             dId_dt = -params.ki * (x.Id - x.I1);
+            
+            
         end
 
     end

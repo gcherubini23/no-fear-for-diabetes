@@ -6,6 +6,7 @@ params.eat_rate = 5; % [g/min]
 
 % To be set by physician
 params.u2ss = 1.2386244136; % steady state (basal) insulin rate (IIRb)
+params.basal = params.u2ss * params.BW / 6000;  % [U/min]
 
 % To be measured at basal state
 params.Gb = 138.56;
@@ -27,6 +28,7 @@ params.m30 = params.m1 * params.HEb / (1 - params.HEb);
 params.m4 = 0.09;
 params.m5 = 0.027345;
 params.Ipb = params.u2ss / (params.m2 + params.m4 - params.m1 * params.m2 / (params.m1 + params.m30));  % basal insulin in plasma
+% params.Ipb = 5.5043265;
 params.Ilb = params.m2 / (params.m1 + params.m30) * params.Ipb;
 params.Ib = params.Ipb / params.VI;
 % Rate of Appearance
@@ -42,6 +44,7 @@ params.kp1 = 4.7314;
 params.kp2 = 0.00469;
 params.kp3 = 0.01208;
 params.ki = 0.0046374;
+% params.ki = 0.0004;
 params.EGPb = params.kp1 - params.kp2 * params.Gpb - params.kp3 * params.Ib;
 % Utilization
 params.Fcns = 1;
