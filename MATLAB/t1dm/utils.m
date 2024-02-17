@@ -91,8 +91,6 @@ classdef utils
             % Euler method
             % vec_x_pred = max(0, vec_x + dt * vec_x_next);
             vec_x_pred = vec_x + dt * vec_dx_dt;
-
-
             x_pred = obj.convert_to_struct(vec_x_pred);
             
         end

@@ -2,8 +2,6 @@ close
 clear
 clc
 
-% parameters;
-patient_01;
 state_fields = {'Qsto1','Qsto2','Qgut','Gp','Gt','Gsc','Il','Ip','Id','I1','X','Isc1','Isc2'};
 extra_state_fields = {'insulin_to_infuse','last_IIR','CHO_to_eat','D','lastQsto','is_eating'}; 
 input_fields = {'CHO', 'IIR'};
@@ -11,7 +9,7 @@ true_input_fields = {'CHO_consumed_rate','IIR'};
 
 filename = "/Users/giovannicherubini/Desktop/Thesis/Code/no-fear-for-diabetes/data/1minsample/adult#001.csv";
 
-ekf_dt = 0.5;
+ekf_dt = 1;
 cgm_dt = 1;
 Q = eye(numel(state_fields)) * 0.08;    % TBD
 R = 0.00;  % TBD
@@ -20,6 +18,9 @@ tools = utils(filename, state_fields, extra_state_fields, input_fields, true_inp
 model = non_linear_model(tools);
 lin_model = linearized_model(tools);
 ekf = ekf(model, lin_model, tools, ekf_dt, Q, R);
+
+basal = tools.IIRs(1);
+params = patient_01(basal);
 
 [x0, y0] = tools.init_conditions(params);
 P = zeros(numel(state_fields),numel(state_fields));   % TBD

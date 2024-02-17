@@ -148,14 +148,15 @@ classdef non_linear_model
         end
         
         function [dIl_dt, dIp_dt, dId_dt, dI1_dt, dX_dt, dIsc1_dt, dIsc2_dt] = insulin_infusion_subsystem(x,v,params)
-            % disp('------')
+            disp('------')
+
             insulin = v.IIR_dt * 6000 / params.BW;
 
             %% Liver Insulin kinetics
             dIl_dt = (-(params.m1 + params.m30) * x.Il + params.m2 * x.Ip) * (x.Il >= 0);
         
             %% Subcutaneous insulin kinetics
-            dIsc1_dt = (insulin - (params.kd + params.ka1) * x.Isc1) * (x.Isc1 >= 0);
+            dIsc1_dt = (insulin - (params.kd + params.ka1) * x.Isc1) * (x.Isc1 >= 0);   
 
             dIsc2_dt = (params.kd * x.Isc1 - params.ka2 * x.Isc2) * (x.Isc2 >= 0);
             
@@ -164,9 +165,6 @@ classdef non_linear_model
             
             %% Plasma insulin kinetics (infusion)
             dIp_dt = (-(params.m2 + params.m4) * x.Ip + params.m1 * x.Il + Rit) * (x.Ip >= 0);
-            if abs(dIp_dt) < 1e-10
-                dIp_dt = 0;
-            end
 
             It = x.Ip / params.VI;
         
@@ -177,17 +175,15 @@ classdef non_linear_model
 
             dId_dt = -params.ki * (x.Id - x.I1);
 
-            % disp(['insulin: ', num2str(insulin), ...
-            %       ', dIl_dt: ', num2str(dIl_dt), ...
-            %       ', dIp_dt: ', num2str(dIp_dt), ...
-            %       ', dId_dt: ', num2str(dId_dt), ...
-            %       ', dI1_dt: ', num2str(dI1_dt), ...
-            %       ', dX_dt: ', num2str(dX_dt), ...
-            %       ', dIsc1_dt: ', num2str(dIsc1_dt), ...
-            %       ', dIsc2_dt: ', num2str(dIsc2_dt), ...
-            %       ', Rit: ', num2str(Rit)]);
-            % 
-            % pause
+            disp(['dIl_dt: ', num2str(dIl_dt), ...
+          ', dIp_dt: ', num2str(dIp_dt), ...
+          ', dId_dt: ', num2str(dId_dt), ...
+          ', dI1_dt: ', num2str(dI1_dt), ...
+          ', dX_dt: ', num2str(dX_dt), ...
+          ', dIsc1_dt: ', num2str(dIsc1_dt), ...
+          ', dIsc2_dt: ', num2str(dIsc2_dt)]);
+
+            pause
         end
 
     end

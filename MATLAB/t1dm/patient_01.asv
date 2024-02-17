@@ -21,7 +21,7 @@ classdef patient_01
         VG = 1.9152;
         k1 = 0.058138;
         k2 = 0.087114;
-        Gpb; % basal glucose in plasma
+        Gpb = Gb * VG; % basal glucose in plasma
         % Insulin Kinetics
         VI = 0.054906;
         HEb = 0.6;
@@ -38,7 +38,7 @@ classdef patient_01
         kmax = 0.046122;
         kmin = 0.0037927;
         kabs = 0.08906;
-        kgri;
+        kgri = kmax;
         f = 0.9;
         b = 0.70391;
         d = 0.21057;
@@ -48,20 +48,20 @@ classdef patient_01
         kp3 = 0.01208;
         ki = 0.0046374;
         % ki = 0.0004;
-        EGPb;
+        EGPb = kp1 - kp2 * Gpb - kp3 * Ib;
         % Utilization
         Fcns = 1;
-        Gtb;  % basal glucose in slowly equilibrating tissues
+        Gtb = 1 / k2 * (Fcns - EGPb + k1 * Gpb);  % basal glucose in slowly equilibrating tissues
         Km0 = 253.52;
-        Vm0;
+        Vm0 = (EGPb - Fcns) * (Km0 + Gtb) / Gtb;
         Vmx = 0.031319;
         p2U = 0.0278;
         % Insulin Infusion
         kd = 0.0152;
         ka1 = 0.0019;
         ka2 = 0.0078;
-        Isc1ss;
-        Isc2ss;
+        Isc1ss = u2ss / (kd + ka1);
+        Isc2ss = Isc1ss * kd / ka2;
         % Renal Excretion
         ke1 = 0.0005;
         ke2 = 339;
@@ -71,17 +71,11 @@ classdef patient_01
         function obj = patient_01(basal)
             obj.basal = basal;
             obj.u2ss = basal * 6000 / obj.BW;
-            obj.m30 = obj.m1 * obj.HEb / (1 - obj.HEb);
+            obj.m30 = m1 * obj.HEb / (1 - obj.HEb);
             obj.Ipb = obj.u2ss / (obj.m2 + obj.m4 - obj.m1 * obj.m2 / (obj.m1 + obj.m30));  % basal insulin in plasma
             obj.Ilb = obj.m2 / (obj.m1 + obj.m30) * obj.Ipb;
             obj.Ib = obj.Ipb / obj.VI;
-            obj.kgri = obj.kmax;
-            obj.Gpb = obj.Gb * obj.VG; % basal glucose in plasma
             obj.EGPb = obj.kp1 - obj.kp2 * obj.Gpb - obj.kp3 * obj.Ib;
-            obj.Gtb = 1 / obj.k2 * (obj.Fcns - obj.EGPb + obj.k1 * obj.Gpb);
-            obj.Vm0 = (obj.EGPb - obj.Fcns) * (obj.Km0 + obj.Gtb) / obj.Gtb;
-            obj.Isc1ss = obj.u2ss / (obj.kd + obj.ka1);
-            obj.Isc2ss = obj.Isc1ss * obj.kd / obj.ka2;
 
         end
 
