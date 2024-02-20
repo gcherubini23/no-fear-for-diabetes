@@ -8,8 +8,8 @@ classdef patient_01
         
         % To be set by physician
         basal;
-        % u2ss = 1.2386244136; % steady state (basal) insulin rate (IIRb)
-        u2ss;      
+        u2ss = 1.2386244136; % steady state (basal) insulin rate (IIRb)
+        % u2ss;      
         
         % To be measured at basal state
         Gb = 138.56;
@@ -31,7 +31,6 @@ classdef patient_01
         m4 = 0.09;
         m5 = 0.027345;
         Ipb;  % basal insulin in plasma
-        % Ipb = 5.5043265;
         Ilb;
         Ib;
         % Rate of Appearance
@@ -47,7 +46,6 @@ classdef patient_01
         kp2 = 0.00469;
         kp3 = 0.01208;
         ki = 0.0046374;
-        % ki = 0.0004;
         EGPb;
         % Utilization
         Fcns = 1;
@@ -71,6 +69,9 @@ classdef patient_01
         function obj = patient_01(basal)
             obj.basal = basal;
             obj.u2ss = basal * 6000 / obj.BW;
+
+            % obj.basal = obj.u2ss * obj.BW / 6000;
+
             obj.m30 = obj.m1 * obj.HEb / (1 - obj.HEb);
             obj.Ipb = obj.u2ss / (obj.m2 + obj.m4 - obj.m1 * obj.m2 / (obj.m1 + obj.m30));  % basal insulin in plasma
             obj.Ilb = obj.m2 / (obj.m1 + obj.m30) * obj.Ipb;

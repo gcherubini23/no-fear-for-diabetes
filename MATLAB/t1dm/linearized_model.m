@@ -9,7 +9,7 @@ classdef linearized_model
         A;
         B;
         D;
-        state_fields = {'Qsto1','Qsto2','Qgut','Gp','Gt','Gsc','Il','Ip','Id','I1','X','Isc1','Isc2'};
+        state_fields = {'Qsto1','Qsto2','Qgut','Gp','Gt','Gsc','Il','Ip','I1','Id','X','Isc1','Isc2'};
         extra_state_fields = {'insulin_to_infuse','last_IIR','CHO_to_eat','D','lastQsto','is_eating'};
         input_fields = {'CHO', 'IIR'};
         true_input_fields = {'CHO_consumed_rate','IIR_dt'};
@@ -92,8 +92,8 @@ classdef linearized_model
                 
                      0, 0, 0, 0, 0, 0, -params.m1-params.m30, -params.m2, 0, 0, 0, 0, 0;    % Il
                      0, 0, 0, 0, 0, 0, params.m1, -params.m2-params.m4, 0, 0, 0, params.ka1, params.ka2;    % Ip
-                     0, 0, 0, 0, 0, 0, 0, 0, -params.ki, params.ki, 0, 0, 0;    % Id
                      0, 0, 0, 0, 0, 0, 0, params.ki/params.VI, 0, -params.ki, 0, 0, 0;  % I1
+                     0, 0, 0, 0, 0, 0, 0, 0, -params.ki, params.ki, 0, 0, 0;    % Id
                      0, 0, 0, 0, 0, 0, 0, params.p2U/params.VI, 0, 0, -params.p2U, 0, 0;    % X
                 
                      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -params.kd-params.ka1, 0; % Isc1

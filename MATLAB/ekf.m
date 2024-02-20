@@ -13,7 +13,9 @@ classdef ekf
 
     model;
     lin_model;
-    tools
+    tools;
+
+    dx_dts;
 
     end
 
@@ -28,18 +30,18 @@ classdef ekf
             obj.lin_model = lin_model;
             obj.tools = tools;
         end      
+        
+        function [xp, Pp, y, v] = process_update(obj, x_old, y_old, u, P_old, params, euler)         
+            % Euler
+            if euler
+                [xp, y, v] = obj.tools.euler_solve(obj.model,params,x_old,y_old,u,obj.dt);
+            else
+                % RK4
+                [xp, y, v] = obj.tools.rk4_solve(obj.model,params,x_old,y_old,u,obj.dt);
+            end
 
-        function [xp_new, Pp] = process_update(obj, x, y, v, P, params)
-
-            % % Euler
-            dx_dt = obj.model.step(x,y,v,params);
-            xp_new = obj.tools.euler_solve(x,dx_dt,obj.dt);
-
-            % RK4 -> to fix
-            % xp_new = obj.tools.rk4_solve(obj.model, params, x, y, v, obj.dt);
-
-            obj.lin_model = obj.lin_model.linearize(x,y,params);
-            Pp = obj.lin_model.A * P * transpose(obj.lin_model.A) + obj.Q;
+            obj.lin_model = obj.lin_model.linearize(x_old,y_old,params);
+            Pp = obj.lin_model.A * P_old * transpose(obj.lin_model.A) + obj.Q;
         end
 
         function [xm, Pm] = measurement_update(obj, xp, Pp, z)
