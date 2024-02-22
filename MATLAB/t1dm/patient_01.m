@@ -15,7 +15,7 @@ classdef patient_01
         Gb = 138.56;
         
         % Sensor features
-        Td = 10; % glucose sensor delay (tbd)
+        Td = 1 / 0.0766; % glucose sensor delay (tbd)
         
         % Glucose Kinetics
         VG = 1.9152;

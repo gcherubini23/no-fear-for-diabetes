@@ -88,7 +88,7 @@ classdef linearized_model
                 
                      0, 0, params.f*params.kabs/params.BW, -params.k1+dEGPt_dGp-dEt_dGp, params.k2, 0, 0, 0, dEGPt_dId, 0, 0, 0, 0; % Gp
                      0, 0, 0, params.k1, -params.k2-dUidt_dGt, 0, 0, 0, 0, 0, -dUidt_dX, 0, 0;  % Gt
-                     0, 0, 0, 1/(params.Td * params.VG), 0, -1/params.Td, 0, 0, 0, 0, 0, 0, 0;    % Gsc
+                     0, 0, 0, 1/params.Td, 0, -1/params.Td, 0, 0, 0, 0, 0, 0, 0;    % Gsc
                 
                      0, 0, 0, 0, 0, 0, -params.m1-params.m30, -params.m2, 0, 0, 0, 0, 0;    % Il
                      0, 0, 0, 0, 0, 0, params.m1, -params.m2-params.m4, 0, 0, 0, params.ka1, params.ka2;    % Ip

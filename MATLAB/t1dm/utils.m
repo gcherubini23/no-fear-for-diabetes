@@ -12,13 +12,13 @@ classdef utils
     end
 
     methods(Static)         
-        function [x0, y0] = init_conditions(params)
+        function [x0, y_minus1] = init_conditions(params)
             x0.Qsto1 = 0;
             x0.Qsto2 = 0;
             x0.Qgut = 0;
             x0.Gp = params.Gpb;
             x0.Gt = params.Gtb;
-            x0.Gsc = params.Gb;
+            x0.Gsc = params.Gpb;
             x0.Il = params.Ilb;
             x0.Ip = params.Ipb;
             x0.I1 = params.Ib;
@@ -27,12 +27,12 @@ classdef utils
             x0.Isc1 = params.Isc1ss;
             x0.Isc2 = params.Isc2ss;
 
-            y0.insulin_to_infuse = 0;
-            y0.last_IIR = params.basal;
-            y0.CHO_to_eat = 0;
-            y0.D = 0;
-            y0.lastQsto = 0;
-            y0.is_eating = false;
+            y_minus1.insulin_to_infuse = 0;
+            y_minus1.last_IIR = 0;
+            y_minus1.CHO_to_eat = 0;
+            y_minus1.D = 0;
+            y_minus1.lastQsto = 0;
+            y_minus1.is_eating = false;
         end
 
     end
@@ -84,46 +84,72 @@ classdef utils
             obj.BGs = dataTable.BG;
         end
 
-        function [x, y, v] = euler_solve(obj, model, params, x_old, y_old, u, dt)    
-            [y, v] = model.preprocess(x_old,y_old,u,params,dt);
-            dx_dt = model.step(x_old,y,v,params);
-            vec_x_old = obj.convert_to_vector(x_old);
+        function [x_next, y, v] = euler_solve(obj, model, params, x, y_old, u, dt)    
+            [y, v] = model.preprocess(x,y_old,u,params,dt);
+            dx_dt = model.step(x,y,v,params);
+            vec_x = obj.convert_to_vector(x);
             vec_dx_dt = obj.convert_to_vector(dx_dt);
-            vec_x_pred = vec_x_old + dt * vec_dx_dt;
-            x = obj.convert_to_struct(vec_x_pred);
+            vec_x_next = vec_x + dt * vec_dx_dt;
+            x_next = obj.convert_to_struct(vec_x_next);
         end
 
-        function [x, y, v] = rk4_solve(obj, model, params, x_old, y_old, u, dt)
-            vec_x_old = obj.convert_to_vector(x_old);
+        function [x_next, y, v] = rk4_solve(obj, model, params, x, y_old, u, dt)
+            vec_x = obj.convert_to_vector(x);
             
-            [y1, v1] = model.preprocess(x_old,y_old,u,params,dt);
-            k1 = obj.convert_to_vector(model.step(x_old,y1,v1,params));
+            [y1, v1] = model.preprocess(x,y_old,u,params,dt);
+            k1 = obj.convert_to_vector(model.step(x,y1,v1,params));
             
-            x2 = obj.convert_to_struct(vec_x_old + dt / 2 * k1);    
+            x2 = obj.convert_to_struct(vec_x + dt / 2 * k1);
             [y2, v2] = model.preprocess(x2,y_old,u,params,dt / 2);
             k2 = obj.convert_to_vector(model.step(x2,y2,v2,params));
 
-            % pause
-
-            x3 = obj.convert_to_struct(vec_x_old + dt / 2 * k2);
+            x3 = obj.convert_to_struct(vec_x + dt / 2 * k2);
             [y3, v3] = model.preprocess(x3,y_old,u,params,dt / 2);
             k3 = obj.convert_to_vector(model.step(x3,y3,v3,params));
 
-            x4 = obj.convert_to_struct(vec_x_old + dt * k3);
+            x4 = obj.convert_to_struct(vec_x + dt * k3);
             [y4, v4] = model.preprocess(x4,y_old,u,params,dt);
             k4 = obj.convert_to_vector(model.step(x4,y4,v4,params));
 
-            x = obj.convert_to_struct(vec_x_old + dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4));
+            x_next = obj.convert_to_struct(vec_x + dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4));
             y = y1;
             v = v1;
+        end
 
-            % euler_step = dt * k1
-            % rk4_step = dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4)
+        function [x_next, y, v] = matlab_solve(obj, model, params, x0, y_old, u, t, dt)
+            
+            % This is the auxiliary function that ode45 will call.
+            % It needs to accept time t and state x, and return the derivative dxdt.
+            [y, v] = model.preprocess(x0, y_old, u, params, dt);
+            odeFunction = @(t, x) odeFunctionWrapper(t, x, obj, model, params, y, v);
+            
+            % Set up the time span for the ODE solver
+            tspan = [t, t+dt];
+            
+            % Call ode45
+            vec_x0 = obj.convert_to_vector(x0);
+            [t, x] = ode45(odeFunction, tspan, vec_x0);
+            
+            % The last state returned by ode45 will be at time dt, which is x(end,:)
+            x_next = obj.convert_to_struct(x(end,:)');
             % pause
+            
+            % After the ODE solver, you may need to update y and v for the final state
+            
 
         end
 
+        function dxdt = odeFunctionWrapper(t, x_vec, obj, model, params, y, v)
+            % Convert the vectorized state back into a struct
+            x = obj.convert_to_struct(x_vec);
+            
+            % Preprocess to get updated y and v based on the current state
+            % [y, v] = model.preprocess(x, y_old, u, params, t);
+            
+            % Compute the derivative using the model's step function
+            dxdt = obj.convert_to_vector(model.step(x, y, v, params));
 
+        end
 
         function x_new = struct_increment(obj, x, dx)
             vec_x = obj.convert_to_vector(x);

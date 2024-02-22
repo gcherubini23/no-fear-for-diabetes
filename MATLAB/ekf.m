@@ -31,17 +31,19 @@ classdef ekf
             obj.tools = tools;
         end      
         
-        function [xp, Pp, y, v] = process_update(obj, x_old, y_old, u, P_old, params, euler)         
+        function [xp_k, Pp_k, y_kminus1, v_kminus1] = process_update(obj, x_kminus1, y_kminus2, u_kminus1, P_kminus1, params, euler, t)         
             % Euler
             if euler
-                [xp, y, v] = obj.tools.euler_solve(obj.model,params,x_old,y_old,u,obj.dt);
+                [xp_k, y_kminus1, v_kminus1] = obj.tools.euler_solve(obj.model,params,x_kminus1,y_kminus2,u_kminus1,obj.dt);
             else
                 % RK4
-                [xp, y, v] = obj.tools.rk4_solve(obj.model,params,x_old,y_old,u,obj.dt);
+                % [xp_k, y_kminus1, v_kminus1] = obj.tools.rk4_solve(obj.model,params,x_kminus1,y_kminus2,u_kminus1,obj.dt);
+
+                [xp_k, y_kminus1, v_kminus1] = obj.tools.matlab_solve(obj.model,params,x_kminus1,y_kminus2,u_kminus1,t,obj.dt);
             end
 
-            obj.lin_model = obj.lin_model.linearize(x_old,y_old,params);
-            Pp = obj.lin_model.A * P_old * transpose(obj.lin_model.A) + obj.Q;
+            obj.lin_model = obj.lin_model.linearize(x_kminus1,y_kminus1,params);
+            Pp_k = obj.lin_model.A * P_kminus1 * transpose(obj.lin_model.A) + obj.Q;
         end
 
         function [xm, Pm] = measurement_update(obj, xp, Pp, z)

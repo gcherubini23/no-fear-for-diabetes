@@ -27,17 +27,17 @@ classdef non_linear_model
     end
 
     methods(Static)        
-        function [y, v] = preprocess(x,y_old,u,params,dt)
+        function [y_k, v_k] = preprocess(x_k,y_kminus1,u_k,params,dt)
             % What are the true inputs?
             
             % Insulin
-            if y_old.insulin_to_infuse <= 0
-                IIR_dt = u.IIR;
+            if y_kminus1.insulin_to_infuse <= 0
+                IIR_dt = u_k.IIR;
             else
-                IIR_dt = y_old.last_IIR;
+                IIR_dt = y_kminus1.last_IIR;    % assuming I do not inject new insulin if I still have some to inject
             end
             
-            insulin_to_infuse = y_old.insulin_to_infuse + u.IIR;  
+            insulin_to_infuse = y_kminus1.insulin_to_infuse + u_k.IIR;  % [U] as it is multiplied by 1 min
            
             % Check if we have enough insulin to infuse for this time step.
             if insulin_to_infuse < IIR_dt * dt
@@ -52,40 +52,42 @@ classdef non_linear_model
             end
             
             % CHO
-            if (y_old.CHO_to_eat / dt >= params.eat_rate) || (u.CHO / dt >= params.eat_rate && y_old.CHO_to_eat == 0)
+            if (y_kminus1.CHO_to_eat / dt >= params.eat_rate) || (u_k.CHO / dt >= params.eat_rate && y_kminus1.CHO_to_eat == 0)
                 CHO_consumed_rate = params.eat_rate;
-            elseif (u.CHO > 0) && (u.CHO / dt < params.eat_rate) && (y_old.CHO_to_eat == 0)
-                CHO_consumed_rate = u.CHO / dt;
+            elseif (u_k.CHO > 0) && (u_k.CHO / dt < params.eat_rate) && (y_kminus1.CHO_to_eat == 0)
+                CHO_consumed_rate = u_k.CHO / dt;
             else
-                CHO_consumed_rate = y_old.CHO_to_eat / dt;
+                CHO_consumed_rate = y_kminus1.CHO_to_eat / dt;
             end
 
             % Update extra states
-            new_CHO_to_eat = u.CHO + y_old.CHO_to_eat - CHO_consumed_rate * dt;
+            new_CHO_to_eat = u_k.CHO + y_kminus1.CHO_to_eat - CHO_consumed_rate * dt;
         
             if CHO_consumed_rate > 0
-                new_D = y_old.D + CHO_consumed_rate * dt;
+                new_D = y_kminus1.D + CHO_consumed_rate * dt;
             else
                 new_D = 0;    
             end
+
+            % new_D = 0;
         
-            if CHO_consumed_rate > 0 && y_old.is_eating == false     % starts eating -> store last state of Qsto
+            if CHO_consumed_rate > 0 && y_kminus1.is_eating == false     % starts eating -> store last state of Qsto
                 is_eating = true;
-                lastQsto = x.Qsto1 + x.Qsto2;
-            elseif CHO_consumed_rate == 0 && y_old.is_eating == true     % stops eating -> restart updating lastQsto
+                lastQsto = x_k.Qsto1 + x_k.Qsto2;
+            elseif CHO_consumed_rate == 0 && y_kminus1.is_eating == true     % stops eating -> restart updating lastQsto
                 is_eating = false;
-                lastQsto = x.Qsto1 + x.Qsto2;    
+                lastQsto = x_k.Qsto1 + x_k.Qsto2;    
             else
-                if y_old.is_eating
-                    lastQsto = y_old.lastQsto;
+                if y_kminus1.is_eating
+                    lastQsto = y_kminus1.lastQsto;
                 else
-                    lastQsto = x.Qsto1 + x.Qsto2;
+                    lastQsto = x_k.Qsto1 + x_k.Qsto2;
                 end
-                is_eating = y_old.is_eating;
+                is_eating = y_kminus1.is_eating;
             end
 
-            v = struct('CHO_consumed_rate',CHO_consumed_rate,'IIR_dt',IIR_dt);
-            y = struct('insulin_to_infuse',new_insulin_to_infuse,'last_IIR',IIR_dt,'CHO_to_eat',new_CHO_to_eat,'D',new_D,'lastQsto',lastQsto,'is_eating',is_eating);
+            v_k = struct('CHO_consumed_rate',CHO_consumed_rate,'IIR_dt',IIR_dt);
+            y_k = struct('insulin_to_infuse',new_insulin_to_infuse,'last_IIR',IIR_dt,'CHO_to_eat',new_CHO_to_eat,'D',new_D,'lastQsto',lastQsto,'is_eating',is_eating);
 
         end
         
@@ -94,7 +96,7 @@ classdef non_linear_model
             dQsto1_dt = (-params.kgri * x.Qsto1 + v.CHO_consumed_rate * 1000);
             
             Qsto = x.Qsto1 + x.Qsto2;
-            Dbar = y.lastQsto + y.D;
+            Dbar = y.lastQsto + y.D * 1000;
             if Dbar > 0
                 aa = 5 / (2 * (1 - params.b) * Dbar);
                 cc = 5 / (2 * params.d * Dbar);
@@ -102,6 +104,11 @@ classdef non_linear_model
             else
                 kgut = params.kmax;
             end
+            
+            kgut = 0.015;
+            % if Dbar > 0
+            %     pause
+            % end
         
             dQsto2_dt = (params.kgri * x.Qsto1 - kgut * x.Qsto2);
         
@@ -139,7 +146,7 @@ classdef non_linear_model
             end
         
             % Subcutaneous glucose
-            dGsc_dt = -1/params.Td * x.Gsc + 1/params.Td * x.Gp / params.VG;
+            dGsc_dt = -1/params.Td * x.Gsc + 1/params.Td * x.Gp;
             if x.Gsc <= 0
                 dGsc_dt = 0;
             end
