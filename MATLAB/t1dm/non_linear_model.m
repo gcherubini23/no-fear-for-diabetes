@@ -8,6 +8,7 @@ classdef non_linear_model
         input_fields = {'CHO', 'IIR'};
         true_input_fields = {'CHO_consumed_rate','IIR_dt'};
         tools;
+        kgut_history = [];
     end
 
     methods
@@ -23,7 +24,7 @@ classdef non_linear_model
             
                 dx_dt = struct('Qsto1',dQsto1_dt,'Qsto2',dQsto2_dt,'Qgut',dQgut_dt,'Gp',dGp_dt,'Gt',dGt_dt,'Gsc',dGsc_dt,'Il',dIl_dt,'Ip',dIp_dt,'I1',dI1_dt,'Id',dId_dt,'X',dX_dt,'Isc1',dIsc1_dt,'Isc2',dIsc2_dt);
         end
-  
+
     end
 
     methods(Static)        
@@ -62,28 +63,24 @@ classdef non_linear_model
 
             % Update extra states
             new_CHO_to_eat = u_k.CHO + y_kminus1.CHO_to_eat - CHO_consumed_rate * dt;
-        
-            if CHO_consumed_rate > 0
-                new_D = y_kminus1.D + CHO_consumed_rate * dt;
+
+            if y_kminus1.is_eating
+                new_D = CHO_consumed_rate * dt + y_kminus1.D;
+            elseif CHO_consumed_rate > 0
+                new_D = CHO_consumed_rate * dt;
             else
-                new_D = 0;    
+                new_D = y_kminus1.D;
             end
 
-            % new_D = 0;
-        
             if CHO_consumed_rate > 0 && y_kminus1.is_eating == false     % starts eating -> store last state of Qsto
                 is_eating = true;
                 lastQsto = x_k.Qsto1 + x_k.Qsto2;
             elseif CHO_consumed_rate == 0 && y_kminus1.is_eating == true     % stops eating -> restart updating lastQsto
                 is_eating = false;
-                lastQsto = x_k.Qsto1 + x_k.Qsto2;    
+                lastQsto = y_kminus1.lastQsto;
             else
-                if y_kminus1.is_eating
-                    lastQsto = y_kminus1.lastQsto;
-                else
-                    lastQsto = x_k.Qsto1 + x_k.Qsto2;
-                end
                 is_eating = y_kminus1.is_eating;
+                lastQsto = y_kminus1.lastQsto;    
             end
 
             v_k = struct('CHO_consumed_rate',CHO_consumed_rate,'IIR_dt',IIR_dt);
@@ -94,7 +91,7 @@ classdef non_linear_model
         function [dQsto1_dt, dQsto2_dt, dQgut_dt] = gastro_intestinal_tract(x,y,v,params) 
             % Stomach
             dQsto1_dt = (-params.kgri * x.Qsto1 + v.CHO_consumed_rate * 1000);
-            
+
             Qsto = x.Qsto1 + x.Qsto2;
             Dbar = y.lastQsto + y.D * 1000;
             if Dbar > 0
@@ -104,17 +101,14 @@ classdef non_linear_model
             else
                 kgut = params.kmax;
             end
-            
-            kgut = 0.015;
-            % if Dbar > 0
-            %     pause
-            % end
-        
+
+            % pause
+
             dQsto2_dt = (params.kgri * x.Qsto1 - kgut * x.Qsto2);
-        
+
             % Intestine
             dQgut_dt = kgut * x.Qsto2 - params.kabs * x.Qgut;
-        
+
         end
         
         function [dGp_dt, dGt_dt, dGsc_dt] = glucose_subystem(x,params)

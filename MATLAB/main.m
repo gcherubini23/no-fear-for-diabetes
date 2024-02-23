@@ -1,4 +1,4 @@
-close
+close all
 clear
 clc
 
@@ -7,13 +7,13 @@ extra_state_fields = {'insulin_to_infuse','last_IIR','CHO_to_eat','D','lastQsto'
 input_fields = {'CHO', 'IIR'};
 true_input_fields = {'CHO_consumed_rate','IIR'};
 
-filename = "/Users/giovannicherubini/Desktop/Thesis/Code/no-fear-for-diabetes/data/1minsample/adult#001.csv";
+filename = "/Users/giovannicherubini/Desktop/Thesis/Code/no-fear-for-diabetes/data/1minsample/adult#001_4.csv";
 
 Q = eye(numel(state_fields)) * 0.08;    % TBD
 R = 0.00;  % TBD
 
-% ekf_dt_values = [0.01, 0.1, 1];
-ekf_dt_values = [0.5];
+ekf_dt_values = [0.01, 0.1, 1];
+% ekf_dt_values = [1,1];
 ekf_dt = ekf_dt_values(1);
 cgm_dt = 1;
 
@@ -67,20 +67,22 @@ for ekf_dt = ekf_dt_values
         else
             what = false;
         end
+        what = true;
 
-        if k == 0
+        if k == 0   % if starting now, set initial conditions
             xp_k = x;
             Pp_k = P;
+            y_kminus1 = y;
         else
-            [xp_k, Pp_k, y_kminus1, v_kminus1] = ekf.process_update(x, y, u, P, params, what,t); % processupdate(x_k-1, y_k-2, u_k-1)
-            v_history(end+1) = v_kminus1.IIR_dt;
+            [xp_k, Pp_k, y_kminus1, v_kminus1] = ekf.process_update(x, y, u, P, params, what, t); % processupdate(x_k-1, y_k-2, u_k-1)
+            v_history(end+1) = v_kminus1.CHO_consumed_rate;
         end
 
         x_current = xp_k;
         P_current = Pp_k;
 
         if false && new_measurement_detected
-            [xm_k, Pm_k] = ekf.measurement_update(xp_k,Pp_k);
+            [xm_k, Pm_k] = ekf.measurement_update(xp_k,Pp_k,z_k);
             x_current = xm_k;
             P_current = Pm_k;
         end
@@ -89,29 +91,35 @@ for ekf_dt = ekf_dt_values
         %% Update
         x = x_current;
         P = P_current;
-        
-        if k ~= 0
-            y = y_kminus1;
-        end
-
+        y = y_kminus1;
         u = u_k;
         k = k + 1;
         
         %% Store results
         % EKF_state_tracking.mean(end+1) = x_current.Gp / params.VG;
         % EKF_state_tracking.variance(end+1) = 1 / params.VG * sqrt(P_current(4,4));
-        model_predictions(:,end+1) = tools.convert_to_vector(x);
-        u_history(end+1) = u.IIR;
-        y_history.CHO_to_eat(end+1) = y.CHO_to_eat;
-        y_history.D(end+1) = y.D;
-        y_history.last_Q_sto(end+1) = y.lastQsto;
-        y_history.is_eating(end+1) = y.is_eating;
-        y_history.insulin_to_infuse(end+1) = y.insulin_to_infuse;
-        y_history.last_IIR(end+1) = y.last_IIR;
+        model_predictions(:,end+1) = tools.convert_to_vector(x);   % (time k)
+        u_history(end+1) = u.CHO;   % time k
+        
+        
+        if k > 1
+            y_history.CHO_to_eat(end+1) = y.CHO_to_eat;
+            y_history.D(end+1) = y.D;
+            y_history.last_Q_sto(end+1) = y.lastQsto;
+            y_history.is_eating(end+1) = y.is_eating;
+            y_history.insulin_to_infuse(end+1) = y.insulin_to_infuse;
+            y_history.last_IIR(end+1) = y.last_IIR;
+        end
         
     end
     
-    v_history(end+1) = u.IIR;
+    v_history(end+1) = u.CHO;
+    y_history.CHO_to_eat(end+1) = y.CHO_to_eat;
+    y_history.D(end+1) = y.D;
+    y_history.last_Q_sto(end+1) = y.lastQsto;
+    y_history.is_eating(end+1) = y.is_eating;
+    y_history.insulin_to_infuse(end+1) = y.insulin_to_infuse;
+    y_history.last_IIR(end+1) = y.last_IIR;
 
     if length(ekf_dt_values) > 1
         if i == 1
@@ -231,13 +239,13 @@ if length(ekf_dt_values) == 1
     end
     
     
-    if (false)
+    if (true)
         % Create figure
         figure;
         
         % Subplot 1
         subplot(3,1,1);
-        plot(timeVecEKF_Model, model_predictions(12,1:numPointsEKFModel)-params.Isc1ss, 'g-', 'DisplayName', 'Isc1');
+        plot(timeVecEKF_Model, model_predictions(1,1:numPointsEKFModel), 'g-', 'DisplayName', 'Qsto1');
         legend show;
         grid on;
         xlabel('Time (min)');
@@ -245,7 +253,7 @@ if length(ekf_dt_values) == 1
     
         % Subplot 2
         subplot(3,1,2);
-        plot(timeVecEKF_Model, params.ka1 * model_predictions(12,1:numPointsEKFModel) + params.ka2 * model_predictions(13,1:numPointsEKFModel), 'g-', 'DisplayName', 'Rit');
+        plot(timeVecEKF_Model, model_predictions(2,1:numPointsEKFModel), 'r-', 'DisplayName', 'Qsto2');
         legend show;
         grid on;
         xlabel('Time (min)');
@@ -253,7 +261,7 @@ if length(ekf_dt_values) == 1
     
         % Subplot 3
         subplot(3,1,3);
-        plot(timeVecEKF_Model, u_history(1:numPointsEKFModel)* 6000 / params.BW, 'g-', 'DisplayName', 'u');
+        plot(timeVecEKF_Model, model_predictions(3,1:numPointsEKFModel), 'b-', 'DisplayName', 'Qgut');
         legend show;
         grid on;
         xlabel('Time (min)');
@@ -263,14 +271,14 @@ if length(ekf_dt_values) == 1
     end
     
     
-    if (false)
+    if (true)
         
         % Create figure
         figure;
         
         % Subplot 1
         subplot(2,1,1);
-        plot(timeVecEKF_Model, y_history.insulin_to_infuse(1:numPointsUV), 'g-', 'DisplayName', 'Insulin to infuse');
+        plot(timeVecEKF_Model, y_history.D(1:numPointsUV), 'g-', 'DisplayName', 'D');
         hold on;
         plot(timeVecEKF_Model, u_history(1:numPointsUV), 'b-', 'DisplayName', 'u');
         hold on
@@ -280,14 +288,18 @@ if length(ekf_dt_values) == 1
         grid on;
         xlabel('Time (min)');
         ylabel('Value');
+
+        % xlim([418,426]);
     
         % Subplot 2
         subplot(2,1,2);
-        plot(timeVecEKF_Model, y_history.last_IIR(1:numPointsUV), 'm-', 'DisplayName', 'last_IIR');
+        plot(timeVecEKF_Model, y_history.is_eating(1:numPointsUV), 'm-', 'DisplayName', 'is eating');
         legend show;
         grid on;
         xlabel('Time (min)');
         ylabel('Value');
+
+         % xlim([418,426])
     
     
     end
@@ -311,8 +323,8 @@ if (true && length(ekf_dt_values) > 1)
     % Plot the predictions
     what = 4;
 
-    plot(timeVec_first, prediction.first(what,:)/params.VG, 'DisplayName', sprintf('Prediction dt=%.2f , euler', ekf_dt_values(1)));
-    plot(timeVec_second, prediction.second(what,:)/params.VG, 'DisplayName', sprintf('Prediction dt=%.2f , ode45', ekf_dt_values(2)));
+    plot(timeVec_first, prediction.first(what,:)/params.VG, 'DisplayName', sprintf('Prediction dt=%.2f', ekf_dt_values(1)));
+    plot(timeVec_second, prediction.second(what,:)/params.VG, 'DisplayName', sprintf('Prediction dt=%.2f', ekf_dt_values(2)));
     if length(ekf_dt_values) == 3
         plot(timeVec_third, prediction.third(what,:)/params.VG, 'DisplayName', sprintf('Prediction dt=%.2f', ekf_dt_values(3)));
     end

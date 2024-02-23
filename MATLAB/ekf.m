@@ -38,7 +38,6 @@ classdef ekf
             else
                 % RK4
                 % [xp_k, y_kminus1, v_kminus1] = obj.tools.rk4_solve(obj.model,params,x_kminus1,y_kminus2,u_kminus1,obj.dt);
-
                 [xp_k, y_kminus1, v_kminus1] = obj.tools.matlab_solve(obj.model,params,x_kminus1,y_kminus2,u_kminus1,t,obj.dt);
             end
 
