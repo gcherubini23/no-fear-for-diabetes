@@ -9,7 +9,7 @@ classdef linearized_model
         A;
         B;
         D;
-        state_fields = {'Qsto1','Qsto2','Qgut','Gp','Gt','Gsc','Il','Ip','I1','Id','X','Isc1','Isc2'};
+        state_fields = {'Qsto1','Qsto2','Qgut','Gp','Gt','Gpd','Il','Ip','I1','Id','X','Isc1','Isc2'};
         extra_state_fields = {'insulin_to_infuse','last_IIR','CHO_to_eat','D','lastQsto','is_eating'};
         input_fields = {'CHO', 'IIR'};
         true_input_fields = {'CHO_consumed_rate','IIR_dt'};
@@ -56,9 +56,14 @@ classdef linearized_model
             % Non-linear term Gt
             dUidt_dGt = (params.Vm0 + params.Vmx * x.X) * params.Km0 / ((params.Km0 + x.Gt)^2);
             dUidt_dX = params.Vmx * x.Gt / (params.Km0 + x.Gt);
+
+            % Uidt_linearized = dUidt_dGt * x.Gt + dUidt_dX * x.X;
+            % Vmt = params.Vm0 + params.Vmx * x.X;
+            % Kmt = params.Km0;
+            % Uidt = (Vmt * x.Gt) / (Kmt + x.Gt);
             
             % Non-linear term Kgut 
-            Dbar = y.lastQsto + y.D;
+            Dbar = y.lastQsto + y.D * 1000;
             if Dbar > 0
                 aa = 5 / (2 * (1 - params.b) * Dbar);
                 cc = 5 / (2 * params.d * Dbar);
@@ -82,23 +87,23 @@ classdef linearized_model
             end
 
             % Compute matrices
-            obj.A = [-params.kgri, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;  % Qsto1
-                     dQsto2_dQsto1, dQsto2_dQsto2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0; % Qsto2
-                     dQgut_dQsto1, dQgut_dQsto2, dQgut_dQgut, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0; % Qgut
-                
-                     0, 0, params.f*params.kabs/params.BW, -params.k1+dEGPt_dGp-dEt_dGp, params.k2, 0, 0, 0, dEGPt_dId, 0, 0, 0, 0; % Gp
-                     0, 0, 0, params.k1, -params.k2-dUidt_dGt, 0, 0, 0, 0, 0, -dUidt_dX, 0, 0;  % Gt
-                     0, 0, 0, 1/params.Td, 0, -1/params.Td, 0, 0, 0, 0, 0, 0, 0;    % Gsc
-                
-                     0, 0, 0, 0, 0, 0, -params.m1-params.m30, -params.m2, 0, 0, 0, 0, 0;    % Il
-                     0, 0, 0, 0, 0, 0, params.m1, -params.m2-params.m4, 0, 0, 0, params.ka1, params.ka2;    % Ip
-                     0, 0, 0, 0, 0, 0, 0, params.ki/params.VI, 0, -params.ki, 0, 0, 0;  % I1
-                     0, 0, 0, 0, 0, 0, 0, 0, -params.ki, params.ki, 0, 0, 0;    % Id
-                     0, 0, 0, 0, 0, 0, 0, params.p2U/params.VI, 0, 0, -params.p2U, 0, 0;    % X
-                
-                     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -params.kd-params.ka1, 0; % Isc1
-                     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, params.kd, -params.ka2];  % Isc2
-            
+            obj.A = [-params.kgri, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;  % Qsto1                                                             1
+                     dQsto2_dQsto1, dQsto2_dQsto2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0; % Qsto2                                                 2
+                     dQgut_dQsto1, dQgut_dQsto2, dQgut_dQgut, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0; % Qgut                                          3
+
+                     0, 0, params.f*params.kabs/params.BW, -params.k1+dEGPt_dGp-dEt_dGp, params.k2, 0, 0, 0, 0, dEGPt_dId, 0, 0, 0; % Gp    4
+                     0, 0, 0, params.k1, -params.k2-dUidt_dGt, 0, 0, 0, 0, 0, -dUidt_dX, 0, 0;  % Gt                                        5
+                     0, 0, 0, 1/params.Td, 0, -1/params.Td, 0, 0, 0, 0, 0, 0, 0;    % Gpd                                                   6
+
+                     0, 0, 0, 0, 0, 0, -params.m1-params.m30, params.m2, 0, 0, 0, 0, 0;    % Il                                             7
+                     0, 0, 0, 0, 0, 0, params.m1, -params.m2-params.m4, 0, 0, 0, params.ka1, params.ka2;    % Ip                            8
+                     0, 0, 0, 0, 0, 0, 0, params.ki/params.VI, -params.ki, 0, 0, 0, 0;  % I1                                                9
+                     0, 0, 0, 0, 0, 0, 0, 0, params.ki, -params.ki, 0, 0, 0;    % Id                                                        10
+                     0, 0, 0, 0, 0, 0, 0, params.p2U/params.VI, 0, 0, -params.p2U, 0, 0;    % X                                             11 
+
+                     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -params.kd-params.ka1, 0; % Isc1                                                      12
+                     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, params.kd, -params.ka2];  % Isc2                                                      13
+
             obj.D = [0;
                      0;
                      0;
@@ -112,7 +117,7 @@ classdef linearized_model
                      -params.Ib*params.p2U;
                      0;
                      0];
-            
+
             obj.B = [1000, 0;
                      0, 0;
                      0, 0;
@@ -132,17 +137,17 @@ classdef linearized_model
     end
 
     methods(Static)      
-        function [y, v] = preprocess(x,y_old,u,params,dt)
+        function [y_k, v_k] = preprocess(x_k,y_kminus1,u_k,params,dt)
             % What are the true inputs?
             
             % Insulin
-            if y_old.insulin_to_infuse <= 0
-                IIR_dt = u.IIR;
+            if y_kminus1.insulin_to_infuse <= 0
+                IIR_dt = u_k.IIR;
             else
-                IIR_dt = y_old.last_IIR;
+                IIR_dt = y_kminus1.last_IIR;    % assuming I do not inject new insulin if I still have some to inject
             end
             
-            insulin_to_infuse = y_old.insulin_to_infuse + u.IIR;  
+            insulin_to_infuse = y_kminus1.insulin_to_infuse + u_k.IIR;  % [U] as it is multiplied by 1 min
            
             % Check if we have enough insulin to infuse for this time step.
             if insulin_to_infuse < IIR_dt * dt
@@ -157,40 +162,38 @@ classdef linearized_model
             end
             
             % CHO
-            if (y_old.CHO_to_eat / dt >= params.eat_rate) || (u.CHO / dt >= params.eat_rate && y_old.CHO_to_eat == 0)
+            if (y_kminus1.CHO_to_eat / dt >= params.eat_rate) || (u_k.CHO / dt >= params.eat_rate && y_kminus1.CHO_to_eat == 0)
                 CHO_consumed_rate = params.eat_rate;
-            elseif (u.CHO > 0) && (u.CHO / dt < params.eat_rate) && (y_old.CHO_to_eat == 0)
-                CHO_consumed_rate = u.CHO / dt;
+            elseif (u_k.CHO > 0) && (u_k.CHO / dt < params.eat_rate) && (y_kminus1.CHO_to_eat == 0)
+                CHO_consumed_rate = u_k.CHO / dt;
             else
-                CHO_consumed_rate = y_old.CHO_to_eat / dt;
+                CHO_consumed_rate = y_kminus1.CHO_to_eat / dt;
             end
 
             % Update extra states
-            new_CHO_to_eat = u.CHO + y_old.CHO_to_eat - CHO_consumed_rate * dt;
-        
-            if CHO_consumed_rate > 0
-                new_D = y_old.D + CHO_consumed_rate * dt;
+            new_CHO_to_eat = u_k.CHO + y_kminus1.CHO_to_eat - CHO_consumed_rate * dt;
+
+            if y_kminus1.is_eating
+                new_D = CHO_consumed_rate * dt + y_kminus1.D;
+            elseif CHO_consumed_rate > 0
+                new_D = CHO_consumed_rate * dt;
             else
-                new_D = 0;    
-            end
-        
-            if CHO_consumed_rate > 0 && y_old.is_eating == false     % starts eating -> store last state of Qsto
-                is_eating = true;
-                lastQsto = x.Qsto1 + x.Qsto2;
-            elseif CHO_consumed_rate == 0 && y_old.is_eating == true     % stops eating -> restart updating lastQsto
-                is_eating = false;
-                lastQsto = x.Qsto1 + x.Qsto2;    
-            else
-                if y_old.is_eating
-                    lastQsto = y_old.lastQsto;
-                else
-                    lastQsto = x.Qsto1 + x.Qsto2;
-                end
-                is_eating = y_old.is_eating;
+                new_D = y_kminus1.D;
             end
 
-            v = struct('CHO_consumed_rate',CHO_consumed_rate,'IIR_dt',IIR_dt);
-            y = struct('insulin_to_infuse',new_insulin_to_infuse,'last_IIR',IIR_dt,'CHO_to_eat',new_CHO_to_eat,'D',new_D,'lastQsto',lastQsto,'is_eating',is_eating);
+            if CHO_consumed_rate > 0 && y_kminus1.is_eating == false     % starts eating -> store last state of Qsto
+                is_eating = true;
+                lastQsto = x_k.Qsto1 + x_k.Qsto2;
+            elseif CHO_consumed_rate == 0 && y_kminus1.is_eating == true     % stops eating -> restart updating lastQsto
+                is_eating = false;
+                lastQsto = y_kminus1.lastQsto;
+            else
+                is_eating = y_kminus1.is_eating;
+                lastQsto = y_kminus1.lastQsto;    
+            end
+
+            v_k = struct('CHO_consumed_rate',CHO_consumed_rate,'IIR_dt',IIR_dt);
+            y_k = struct('insulin_to_infuse',new_insulin_to_infuse,'last_IIR',IIR_dt,'CHO_to_eat',new_CHO_to_eat,'D',new_D,'lastQsto',lastQsto,'is_eating',is_eating);
 
         end
     end

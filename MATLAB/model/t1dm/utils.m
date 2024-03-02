@@ -18,11 +18,34 @@ classdef utils
             x0.Qgut = 0;
             x0.Gp = params.Gpb;
             x0.Gt = params.Gtb;
-            x0.Gsc = params.Gpb;
+            x0.Gpd = params.Gpb;
             x0.Il = params.Ilb;
             x0.Ip = params.Ipb;
             x0.I1 = params.Ib;
             x0.Id = params.Ib;
+            x0.X = 0;
+            x0.Isc1 = params.Isc1ss;
+            x0.Isc2 = params.Isc2ss;
+
+            y_minus1.insulin_to_infuse = 0;
+            y_minus1.last_IIR = 0;
+            y_minus1.CHO_to_eat = 0;
+            y_minus1.D = 0;
+            y_minus1.lastQsto = 0;
+            y_minus1.is_eating = false;
+        end
+
+        function [x0, y_minus1] = rand_conditions(params)
+            x0.Qsto1 = 0;
+            x0.Qsto2 = 0;
+            x0.Qgut = 0;
+            x0.Gp = 103;
+            x0.Gt = 49;
+            x0.Gpd = 0;
+            x0.Il = 40;
+            x0.Ip = 120;
+            x0.I1 = 0;
+            x0.Id = 0;
             x0.X = 0;
             x0.Isc1 = params.Isc1ss;
             x0.Isc2 = params.Isc2ss;

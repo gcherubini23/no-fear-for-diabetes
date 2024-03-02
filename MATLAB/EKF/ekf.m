@@ -33,26 +33,23 @@ classdef ekf
         
         function [xp_k, Pp_k, y_kminus1, v_kminus1] = process_update(obj, x_kminus1, y_kminus2, u_kminus1, P_kminus1, params, euler, t)         
             % Euler
-            if euler
-                [xp_k, y_kminus1, v_kminus1] = obj.tools.euler_solve(obj.model,params,x_kminus1,y_kminus2,u_kminus1,obj.dt);
-            else
-                % RK4
-                % [xp_k, y_kminus1, v_kminus1] = obj.tools.rk4_solve(obj.model,params,x_kminus1,y_kminus2,u_kminus1,obj.dt);
-                [xp_k, y_kminus1, v_kminus1] = obj.tools.matlab_solve(obj.model,params,x_kminus1,y_kminus2,u_kminus1,t,obj.dt);
-            end
-
+            [xp_k, y_kminus1, v_kminus1] = obj.tools.euler_solve(obj.model,params,x_kminus1,y_kminus2,u_kminus1,obj.dt);
             obj.lin_model = obj.lin_model.linearize(x_kminus1,y_kminus1,params);
             Pp_k = obj.lin_model.A * P_kminus1 * transpose(obj.lin_model.A) + obj.Q;
         end
 
-        function [xm, Pm] = measurement_update(obj, xp, Pp, z)
+        function [xm, Pm] = measurement_update(obj, xp, Pp, z, params)
             vec_xp = obj.tools.convert_to_vector(xp);
-            
             obj.K = Pp * transpose(obj.H) * (obj.H * Pp * transpose(obj.H) + obj.R)^(-1);
-            vec_xm = vec_xp + obj.K * (z - obj.H * vec_xp);
+            vec_xm = vec_xp + obj.K * (z - obj.H * vec_xp / params.VG);
+            % xp = vec_xp
+            pred = obj.H * vec_xp / params.VG;
+            z = z;
+            K = obj.K;
+            residual = z - pred;
             Pm = (eye(length(vec_xp)) - obj.K * obj.H) * Pp * transpose(eye(length(vec_xp)) - obj.K * obj.H) + obj.K * obj.R * transpose(obj.K);
-
             xm = obj.tools.convert_to_struct(vec_xm);
+            % pause
         end
 
     end

@@ -1,6 +1,4 @@
-%% patient_01 true parameters
-
-classdef patient_01
+classdef patient_00
     properties
         % Patient features
         BW = 102.32; % body weight [kg]
@@ -15,49 +13,51 @@ classdef patient_01
         Gb = 138.56;
         
         % Sensor features
-        Td = 1 / 0.0766; % glucose sensor delay (tbd)
+        Td = 10; % glucose sensor delay
         
         % Glucose Kinetics
         VG = 1.9152;
-        k1 = 0.058138;
-        k2 = 0.087114;
+        k1 = 0.065;
+        k2 = 0.079;
         Gpb; % basal glucose in plasma
         % Insulin Kinetics
-        VI = 0.054906;
+        VI = 0.05;
         HEb = 0.6;
-        m1 = 0.15446;
-        m2 = 0.225;
+        m1 = 0.190;
+        m2 = 0.484;
         m30;
-        m4 = 0.09;
-        m5 = 0.027345;
+        m4 = 0.194;
+        m5 = 0.0304;
         Ipb;  % basal insulin in plasma
         Ilb;
         Ib;
         % Rate of Appearance
-        kmax = 0.046122;
-        kmin = 0.0037927;
-        kabs = 0.08906;
+        kmax = 0.0558;
+        kmin = 0.0080;
+        kabs = 0.0570;
         kgri;
         f = 0.9;
-        b = 0.70391;
-        d = 0.21057;
+        b = 0.82;
+        d = 0.010;
         % Endogenous Glucose Production
-        kp1 = 4.7314;
+        kp1 = 2.70;
+        % kp2 = 0.0021;
         kp2 = 0.00469;
-        kp3 = 0.01208;
-        ki = 0.0046374;
+        kp3 = 0.009;
+        ki = 0.0079;
         EGPb;
         % Utilization
         Fcns = 1;
         Gtb;  % basal glucose in slowly equilibrating tissues
-        Km0 = 253.52;
-        Vm0;
+        Km0 = 225.59;
+        Vm0 = 2.5;
+        % Vmx = 0.047;
         Vmx = 0.031319;
-        p2U = 0.0278;
+        p2U = 0.0331;
         % Insulin Infusion
-        kd = 0.0152;
-        ka1 = 0.0019;
-        ka2 = 0.0078;
+        kd = 0.0164;
+        ka1 = 0.0018;
+        ka2 = 0.0182;
         Isc1ss;
         Isc2ss;
         % Renal Excretion
@@ -66,7 +66,7 @@ classdef patient_01
     end
 
     methods
-        function obj = patient_01(basal)
+        function obj = patient_00(basal)
             obj.basal = basal;
             obj.u2ss = basal * 6000 / obj.BW;
 
@@ -84,6 +84,18 @@ classdef patient_01
             obj.Isc1ss = obj.u2ss / (obj.kd + obj.ka1);
             obj.Isc2ss = obj.Isc1ss * obj.kd / obj.ka2;
 
+        end
+
+        function obj = set_params(obj, params_to_estimate, p)
+            fields = fieldnames(params_to_estimate); % Get all field names from the struct
+            for i = 1:numel(fields)
+                fieldName = fields{i}; % Current field name
+                if isprop(obj, fieldName) % Check if the field is a property of the object
+                    obj.(fieldName) = p(i); % Update the property
+                else
+                    warning('Property %s does not exist in patient_00.', fieldName);
+                end
+            end
         end
 
     end

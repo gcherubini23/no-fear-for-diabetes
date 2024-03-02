@@ -3,7 +3,7 @@
 classdef non_linear_model
 
     properties
-        state_fields = {'Qsto1','Qsto2','Qgut','Gp','Gt','Gsc','Il','Ip','I1','Id','X','Isc1','Isc2'};
+        state_fields = {'Qsto1','Qsto2','Qgut','Gp','Gt','Gpd','Il','Ip','I1','Id','X','Isc1','Isc2'};
         extra_state_fields = {'insulin_to_infuse','last_IIR','CHO_to_eat','D','lastQsto','is_eating'}; 
         input_fields = {'CHO', 'IIR'};
         true_input_fields = {'CHO_consumed_rate','IIR_dt'};
@@ -19,10 +19,10 @@ classdef non_linear_model
         function dx_dt = step(obj,x,y,v,params)
                 
                 [dQsto1_dt, dQsto2_dt, dQgut_dt] = obj.gastro_intestinal_tract(x,y,v,params);
-                [dGp_dt, dGt_dt, dGsc_dt] = obj.glucose_subystem(x,params);
+                [dGp_dt, dGt_dt, dGpd_dt] = obj.glucose_subystem(x,params);
                 [dIl_dt, dIp_dt, dI1_dt, dId_dt, dX_dt, dIsc1_dt, dIsc2_dt] = obj.insulin_infusion_subsystem(x,v,params);
             
-                dx_dt = struct('Qsto1',dQsto1_dt,'Qsto2',dQsto2_dt,'Qgut',dQgut_dt,'Gp',dGp_dt,'Gt',dGt_dt,'Gsc',dGsc_dt,'Il',dIl_dt,'Ip',dIp_dt,'I1',dI1_dt,'Id',dId_dt,'X',dX_dt,'Isc1',dIsc1_dt,'Isc2',dIsc2_dt);
+                dx_dt = struct('Qsto1',dQsto1_dt,'Qsto2',dQsto2_dt,'Qgut',dQgut_dt,'Gp',dGp_dt,'Gt',dGt_dt,'Gpd',dGpd_dt,'Il',dIl_dt,'Ip',dIp_dt,'I1',dI1_dt,'Id',dId_dt,'X',dX_dt,'Isc1',dIsc1_dt,'Isc2',dIsc2_dt);
         end
 
     end
@@ -92,6 +92,7 @@ classdef non_linear_model
             % Stomach
             dQsto1_dt = (-params.kgri * x.Qsto1 + v.CHO_consumed_rate * 1000);
 
+            % CHO = v.CHO_consumed_rate
             Qsto = x.Qsto1 + x.Qsto2;
             Dbar = y.lastQsto + y.D * 1000;
             if Dbar > 0
@@ -103,7 +104,7 @@ classdef non_linear_model
             end
 
             % pause
-
+            
             dQsto2_dt = (params.kgri * x.Qsto1 - kgut * x.Qsto2);
 
             % Intestine
@@ -111,7 +112,7 @@ classdef non_linear_model
 
         end
         
-        function [dGp_dt, dGt_dt, dGsc_dt] = glucose_subystem(x,params)
+        function [dGp_dt, dGt_dt, dGpd_dt] = glucose_subystem(x,params)
             % Appearance rate of glucose in plasma
             Rat = params.f * params.kabs * x.Qgut / params.BW;
         
@@ -123,28 +124,28 @@ classdef non_linear_model
             Vmt = params.Vm0 + params.Vmx * x.X;
             Kmt = params.Km0;
             Uidt = (Vmt * x.Gt) / (Kmt + x.Gt);
-        
+         
             % Glucose renal excretion
             Et = max(0, params.ke1 * (x.Gp - params.ke2));
         
             % Glucose kinetics
             dGp_dt = EGPt + Rat - Uiit - Et - params.k1 * x.Gp + params.k2 * x.Gt;
            
-            if x.Gp <= 0 || abs(dGp_dt) <= 1e-10
+            if x.Gp < 0 || abs(dGp_dt) <= 1e-10
                 dGp_dt = 0;
             end
             
             dGt_dt = -Uidt + params.k1 * x.Gp - params.k2 * x.Gt;
-            if x.Gt <= 0
+            if x.Gt < 0
                 dGt_dt = 0;
             end
         
             % Subcutaneous glucose
-            dGsc_dt = -1/params.Td * x.Gsc + 1/params.Td * x.Gp;
-            if x.Gsc <= 0
-                dGsc_dt = 0;
+            dGpd_dt = -1/params.Td * x.Gpd + 1/params.Td * x.Gp;
+            if x.Gpd < 0
+                dGpd_dt = 0;
             end
-        
+
         end
         
         function [dIl_dt, dIp_dt, dI1_dt, dId_dt, dX_dt, dIsc1_dt, dIsc2_dt] = insulin_infusion_subsystem(x,v,params)
