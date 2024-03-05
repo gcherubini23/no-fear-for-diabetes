@@ -36,19 +36,20 @@ classdef utils
         end
 
         function [x0, y_minus1] = rand_conditions(params)
+            t = 0.45;
             x0.Qsto1 = 0;
             x0.Qsto2 = 0;
             x0.Qgut = 0;
-            x0.Gp = 103;
-            x0.Gt = 49;
-            x0.Gpd = 0;
-            x0.Il = 40;
-            x0.Ip = 120;
-            x0.I1 = 0;
-            x0.Id = 0;
+            x0.Gp = params.Gpb*t;
+            x0.Gt = params.Gtb*t;
+            x0.Gpd = params.Gpb*t;
+            x0.Il = params.Ilb*t;
+            x0.Ip = params.Ipb*t;
+            x0.I1 = params.Ib*t;
+            x0.Id = params.Ib*t;
             x0.X = 0;
-            x0.Isc1 = params.Isc1ss;
-            x0.Isc2 = params.Isc2ss;
+            x0.Isc1 = params.Isc1ss*t;
+            x0.Isc2 = params.Isc2ss*t;
 
             y_minus1.insulin_to_infuse = 0;
             y_minus1.last_IIR = 0;
@@ -116,28 +117,28 @@ classdef utils
             x_next = obj.convert_to_struct(vec_x_next);
         end
 
-        function [x_next, y, v] = rk4_solve(obj, model, params, x, y_old, u, dt)
-            vec_x = obj.convert_to_vector(x);
-            
-            [y1, v1] = model.preprocess(x,y_old,u,params,dt);
-            k1 = obj.convert_to_vector(model.step(x,y1,v1,params));
-            
-            x2 = obj.convert_to_struct(vec_x + dt / 2 * k1);
-            [y2, v2] = model.preprocess(x2,y_old,u,params,dt / 2);
-            k2 = obj.convert_to_vector(model.step(x2,y2,v2,params));
-
-            x3 = obj.convert_to_struct(vec_x + dt / 2 * k2);
-            [y3, v3] = model.preprocess(x3,y_old,u,params,dt / 2);
-            k3 = obj.convert_to_vector(model.step(x3,y3,v3,params));
-
-            x4 = obj.convert_to_struct(vec_x + dt * k3);
-            [y4, v4] = model.preprocess(x4,y_old,u,params,dt);
-            k4 = obj.convert_to_vector(model.step(x4,y4,v4,params));
-
-            x_next = obj.convert_to_struct(vec_x + dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4));
-            y = y1;
-            v = v1;
-        end
+        % function [x_next, y, v] = rk4_solve(obj, model, params, x, y_old, u, dt)
+        %     vec_x = obj.convert_to_vector(x);
+        % 
+        %     [y1, v1] = model.preprocess(x,y_old,u,params,dt);
+        %     k1 = obj.convert_to_vector(model.step(x,y1,v1,params));
+        % 
+        %     x2 = obj.convert_to_struct(vec_x + dt / 2 * k1);
+        %     [y2, v2] = model.preprocess(x2,y_old,u,params,dt / 2);
+        %     k2 = obj.convert_to_vector(model.step(x2,y2,v2,params));
+        % 
+        %     x3 = obj.convert_to_struct(vec_x + dt / 2 * k2);
+        %     [y3, v3] = model.preprocess(x3,y_old,u,params,dt / 2);
+        %     k3 = obj.convert_to_vector(model.step(x3,y3,v3,params));
+        % 
+        %     x4 = obj.convert_to_struct(vec_x + dt * k3);
+        %     [y4, v4] = model.preprocess(x4,y_old,u,params,dt);
+        %     k4 = obj.convert_to_vector(model.step(x4,y4,v4,params));
+        % 
+        %     x_next = obj.convert_to_struct(vec_x + dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4));
+        %     y = y1;
+        %     v = v1;
+        % end
 
         function [x_next, y, v] = matlab_solve(obj, model, params, x0, y_old, u, t, dt)
             
@@ -165,9 +166,6 @@ classdef utils
         function dxdt = odeFunctionWrapper(t, x_vec, obj, model, params, y, v)
             % Convert the vectorized state back into a struct
             x = obj.convert_to_struct(x_vec);
-            
-            % Preprocess to get updated y and v based on the current state
-            % [y, v] = model.preprocess(x, y_old, u, params, t);
             
             % Compute the derivative using the model's step function
             dxdt = obj.convert_to_vector(model.step(x, y, v, params));

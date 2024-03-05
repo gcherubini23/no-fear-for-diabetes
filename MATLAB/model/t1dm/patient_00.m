@@ -41,8 +41,7 @@ classdef patient_00
         d = 0.010;
         % Endogenous Glucose Production
         kp1 = 2.70;
-        % kp2 = 0.0021;
-        kp2 = 0.00469;
+        kp2 = 0.0021;
         kp3 = 0.009;
         ki = 0.0079;
         EGPb;
@@ -51,8 +50,7 @@ classdef patient_00
         Gtb;  % basal glucose in slowly equilibrating tissues
         Km0 = 225.59;
         Vm0 = 2.5;
-        % Vmx = 0.047;
-        Vmx = 0.031319;
+        Vmx = 0.047;
         p2U = 0.0331;
         % Insulin Infusion
         kd = 0.0164;
@@ -87,11 +85,11 @@ classdef patient_00
         end
 
         function obj = set_params(obj, params_to_estimate, p)
-            fields = fieldnames(params_to_estimate); % Get all field names from the struct
+            fields = params_to_estimate; 
             for i = 1:numel(fields)
-                fieldName = fields{i}; % Current field name
-                if isprop(obj, fieldName) % Check if the field is a property of the object
-                    obj.(fieldName) = p(i); % Update the property
+                fieldName = fields{i}; 
+                if isprop(obj, fieldName) 
+                    obj.(fieldName) = p(i); 
                 else
                     warning('Property %s does not exist in patient_00.', fieldName);
                 end

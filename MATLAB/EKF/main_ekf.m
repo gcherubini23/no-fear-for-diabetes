@@ -7,7 +7,7 @@ extra_state_fields = {'insulin_to_infuse','last_IIR','CHO_to_eat','D','lastQsto'
 input_fields = {'CHO', 'IIR'};
 true_input_fields = {'CHO_consumed_rate','IIR_dt'};
 
-filename = "/Users/giovannicherubini/Desktop/Thesis/Code/data/1minsample/adult#001_4.csv";
+filename = "/Users/giovannicherubini/Desktop/Thesis/Code/data/1minsample/adult#001_3.csv";
 
 Q = eye(numel(state_fields)) * 1;    % TBD
 R = 20;  % TBD
@@ -23,8 +23,15 @@ lin_model = linearized_model(tools);
 ekf = ekf(model, lin_model, tools, ekf_dt, Q, R);
 
 basal = tools.IIRs(1);
-params = patient_00(basal);
-% params = patient_01(basal);
+
+params = patient_01(basal);
+
+% params = patient_00(basal);
+% % Best using mse
+% p_pso_00 = [0.00613673067477461,	0.400287164971832,	0.494617050929902,	4.92072844013362,	0.00382498896706389,	0.000826933211308203,	0.0998386175768517,	0.00854364392451055,	0.0997034961579507,	0.0309196769142360,	0.0389878346812570];
+% % Best using rmse
+% p_pso_00 = [0.00726798039653122,	0.288211953663130,	0.357087874454711,	5.50484148758251,	0.00351366020364207,	0.000786244943534256,	0.0999827530364573,	0.00890161075502704,	0.0999958739540014,	0.0365651255883235,	0.0360709498914858];
+% params = params.set_params({'kp2','k1','k2','kp1','ki','ke1','kmax','kmin','kabs','kp3','Vmx'}, p_pso_00);
 
 [x0, y_minus1] = tools.init_conditions(params);
 % [x0, y_minus1] = tools.rand_conditions(params);
@@ -34,6 +41,7 @@ prediction.first = [];
 prediction.second = [];
 prediction.third = [];
 mse = [];
+rmse = [];
 i = 1;
 for ekf_dt = ekf_dt_values
     
@@ -64,7 +72,7 @@ for ekf_dt = ekf_dt_values
         [z_k, new_measurement_detected] = sample_measurement(t, tools);
         [u_k, new_input_detected] = sample_input(t, tools);
 
-        %% EKF
+        % EKF
 
         if i == 1
             what = true;
@@ -96,16 +104,14 @@ for ekf_dt = ekf_dt_values
         end
         
 
-        %% Update
+        % Update
         x = x_current;
         P = P_current;
         y = y_kminus1;
         u = u_k;
         k = k + 1;
         
-        %% Store results
-        % EKF_state_tracking.mean(end+1) = x_current.Gp / params.VG;
-        % EKF_state_tracking.variance(end+1) = 1 / params.VG * sqrt(P_current(4,4));
+        % Store results
         model_predictions(:,end+1) = tools.convert_to_vector(x);   % (time k)
         u_history(end+1) = u.CHO;   % time k
         
@@ -144,6 +150,7 @@ for ekf_dt = ekf_dt_values
 
     if ekf_dt == 1
         mse(end+1) = mean((transpose(tools.BGs)-(model_predictions(6,:)/params.VG)).^2);
+        rmse(end+1) = mean( ((model_predictions(6,:)/params.VG) - (transpose(tools.BGs))).^2 )^(1/2);    % RMSE
     end
 
     disp("Done");
@@ -151,7 +158,7 @@ end
 
 %% Plot
 
-if length(ekf_dt_values) == 1
+if length(ekf_dt_values) == 1 && true
     if ekf_dt <= 1
         dt_EKF_Model = ekf_dt; % Time step for EKF mean and model predictions
         dt_BGs = cgm_dt; % Time step for BGs
@@ -264,48 +271,115 @@ if length(ekf_dt_values) == 1
     % end
 end
 
-% if (true && length(ekf_dt_values) > 1)
-% 
-%     timeVec_first = 0:ekf_dt_values(1):(length(prediction.first(1,:)) - 1) * ekf_dt_values(1);
-%     timeVec_second = 0:ekf_dt_values(2):(length(prediction.second(1,:)) - 1) * ekf_dt_values(2);
-% 
-%     if length(ekf_dt_values) == 3
-%         timeVec_third = 0:ekf_dt_values(3):(length(prediction.third(1,:)) - 1) * ekf_dt_values(3);
-%     end
-% 
-%     timeVec_BGs = 0:cgm_dt:(length(tools.BGs) - 1) * cgm_dt;
-% 
-%     % Plotting the predictions and BGs
-%     figure; % Create a new figure
-%     hold on; % Hold on to plot multiple lines
-% 
-%     % Plot the predictions
-%     what = 6;
-% 
-%     plot(timeVec_first, prediction.first(what,:)/params.VG,'b-','DisplayName', sprintf('Prediction dt=%.2f', ekf_dt_values(1)));
-%     plot(timeVec_second, prediction.second(what,:)/params.VG,'r-', 'DisplayName', sprintf('Prediction dt=%.2f', ekf_dt_values(2)));
-%     if length(ekf_dt_values) == 3
-%         plot(timeVec_third, prediction.third(what,:)/params.VG,'g-', 'DisplayName', sprintf('Prediction dt=%.2f', ekf_dt_values(3)));
-%     end
-% 
-%     % Plot the BGs
-%     plot(timeVec_BGs, tools.BGs, 'k', 'DisplayName', 'BGs');
-% 
-%     % Customize the plot
-%     xlabel('Time (min)');
-%     ylabel('Glucose Level');
-%     title('Glucose Predictions and BGs');
-%     legend('show'); % Show legend
-%     hold off; % Release the hold on the current figure
-% 
-% end
+if (false && length(ekf_dt_values) > 1)
+
+    timeVec_first = 0:ekf_dt_values(1):(length(prediction.first(1,:)) - 1) * ekf_dt_values(1);
+    timeVec_second = 0:ekf_dt_values(2):(length(prediction.second(1,:)) - 1) * ekf_dt_values(2);
+
+    if length(ekf_dt_values) == 3
+        timeVec_third = 0:ekf_dt_values(3):(length(prediction.third(1,:)) - 1) * ekf_dt_values(3);
+    end
+
+    timeVec_BGs = 0:cgm_dt:(length(tools.BGs) - 1) * cgm_dt;
+
+    % Plotting the predictions and BGs
+    figure; % Create a new figure
+    hold on; % Hold on to plot multiple lines
+
+    % Plot the predictions
+    what = 6;
+
+    plot(timeVec_first, prediction.first(what,:)/params.VG,'b-','DisplayName', sprintf('Prediction dt=%.2f', ekf_dt_values(1)));
+    plot(timeVec_second, prediction.second(what,:)/params.VG,'r-', 'DisplayName', sprintf('Prediction dt=%.2f', ekf_dt_values(2)));
+    if length(ekf_dt_values) == 3
+        plot(timeVec_third, prediction.third(what,:)/params.VG,'g-', 'DisplayName', sprintf('Prediction dt=%.2f', ekf_dt_values(3)));
+    end
+
+    % Plot the BGs
+    plot(timeVec_BGs, tools.BGs, 'k', 'DisplayName', 'BGs');
+
+    % Customize the plot
+    xlabel('Time (min)');
+    ylabel('Glucose Level');
+    title('Glucose Predictions and BGs');
+    legend('show'); % Show legend
+    hold off; % Release the hold on the current figure
+
+end
+
+if false
+    totalMinutes = length(model_predictions) * ekf_dt;
+    time_vec = 0:ekf_dt:totalMinutes-ekf_dt;
+
+    figure;
+
+    subplot(7,2,1);
+    plot(time_vec, model_predictions(1,:) + model_predictions(2,:), 'b-');
+    xlabel('Time [min]');
+    ylabel('Qsto [mg]');
+    subplot(7,2,3);
+    plot(time_vec, model_predictions(3,:), 'b-');
+    xlabel('Time [min]');
+    ylabel('Qgut [mg]');
+
+
+    subplot(7,2,5);
+    plot(time_vec, model_predictions(4,:), 'r-');
+    xlabel('Time [min]');
+    ylabel('Gp [mg/kg]');
+    subplot(7,2,7);
+    plot(time_vec, model_predictions(5,:), 'r-');
+    xlabel('Time [min]');
+    ylabel('Gt [mg/kg]');
+    subplot(7,2,9);
+    plot(time_vec, model_predictions(6,:), 'r-');
+    xlabel('Time [min]');
+    ylabel('Gsc [mg/kg]');
+
+    subplot(7,2,11);
+    plot(time_vec, model_predictions(7,:), 'g-');
+    xlabel('Time [min]');
+    ylabel('Il [pmol/kg]');
+    subplot(7,2,13);
+    plot(time_vec, model_predictions(8,:), 'g-');
+    xlabel('Time [min]');
+    ylabel('Ip [pmol/kg]');
+    subplot(7,2,2);
+    plot(time_vec, model_predictions(9,:), 'g-');
+    xlabel('Time [min]');
+    ylabel('I1 [pmol/l]');
+    subplot(7,2,4);
+    plot(time_vec, model_predictions(10,:), 'g-');
+    xlabel('Time [min]');
+    ylabel('Id [pmol/l]');
+    subplot(7,2,6);
+    plot(time_vec, model_predictions(11,:), 'g-');
+    xlabel('Time [min]');
+    ylabel('X [pmol/l]');
+
+    subplot(7,2,8);
+    plot(time_vec, model_predictions(12,:), 'k-');
+    xlabel('Time [min]');
+    ylabel('Isc1 [pmol/kg]');
+    subplot(7,2,10);
+    plot(time_vec, model_predictions(13,:), 'k-');
+    xlabel('Time [min]');
+    ylabel('Isc2 [pmol/kg]');
+
+    subplot(7,2,12);
+    plot(time_vec, tools.CHOs, 'm-');
+    xlabel('Time [min]');
+    ylabel('CHO[g]');
+    subplot(7,2,14);
+    plot(time_vec, tools.IIRs, 'm-');
+    xlabel('Time [min]');
+    ylabel('IIR[U]');
+
+    set(gcf, 'Position', get(0, 'Screensize')); % Maximize figure window for clarity
+
+end
 
 %% Extra functions
-
-% function [x1, P1, x2, P2] = predict(x, y, t1, t2, ekf, lin_model)
-% 
-% 
-% end
 
 function stop = stop_simulation(tools, CGM_read)
 

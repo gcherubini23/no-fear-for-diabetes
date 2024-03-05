@@ -87,11 +87,11 @@ classdef patient_01
         end
 
         function obj = set_params(obj, params_to_estimate, p)
-            fields = fieldnames(params_to_estimate); % Get all field names from the struct
+            fields = params_to_estimate; 
             for i = 1:numel(fields)
-                fieldName = fields{i}; % Current field name
-                if isprop(obj, fieldName) % Check if the field is a property of the object
-                    obj.(fieldName) = p(i); % Update the property
+                fieldName = fields{i}; 
+                if isprop(obj, fieldName) 
+                    obj.(fieldName) = p(i);
                 else
                     warning('Property %s does not exist in patient_00.', fieldName);
                 end

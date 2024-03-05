@@ -34,6 +34,7 @@ classdef ekf
         function [xp_k, Pp_k, y_kminus1, v_kminus1] = process_update(obj, x_kminus1, y_kminus2, u_kminus1, P_kminus1, params, euler, t)         
             % Euler
             [xp_k, y_kminus1, v_kminus1] = obj.tools.euler_solve(obj.model,params,x_kminus1,y_kminus2,u_kminus1,obj.dt);
+            % [xp_k, y_kminus1, v_kminus1] = obj.tools.matlab_solve(obj.model,params,x_kminus1,y_kminus2,u_kminus1,t,obj.dt);
             obj.lin_model = obj.lin_model.linearize(x_kminus1,y_kminus1,params);
             Pp_k = obj.lin_model.A * P_kminus1 * transpose(obj.lin_model.A) + obj.Q;
         end
