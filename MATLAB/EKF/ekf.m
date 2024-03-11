@@ -44,10 +44,10 @@ classdef ekf
             obj.K = Pp * transpose(obj.H) * (obj.H * Pp * transpose(obj.H) + obj.R)^(-1);
             vec_xm = vec_xp + obj.K * (z - obj.H * vec_xp / params.VG);
             % xp = vec_xp
-            pred = obj.H * vec_xp / params.VG;
-            z = z;
-            K = obj.K;
-            residual = z - pred;
+            % pred = obj.H * vec_xp / params.VG;
+            % z = z;
+            % K = obj.K;
+            % residual = z - pred;
             Pm = (eye(length(vec_xp)) - obj.K * obj.H) * Pp * transpose(eye(length(vec_xp)) - obj.K * obj.H) + obj.K * obj.R * transpose(obj.K);
             xm = obj.tools.convert_to_struct(vec_xm);
             % pause

@@ -36,7 +36,7 @@ classdef utils
         end
 
         function [x0, y_minus1] = rand_conditions(params)
-            t = 0.45;
+            t = 0.6;
             x0.Qsto1 = 0;
             x0.Qsto2 = 0;
             x0.Qgut = 0;

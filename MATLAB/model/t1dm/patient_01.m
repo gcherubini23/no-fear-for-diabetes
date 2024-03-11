@@ -86,16 +86,35 @@ classdef patient_01
 
         end
 
+        function obj = recompile(obj)
+
+            obj.m30 = obj.m1 * obj.HEb / (1 - obj.HEb);
+            obj.Ipb = obj.u2ss / (obj.m2 + obj.m4 - obj.m1 * obj.m2 / (obj.m1 + obj.m30));  % basal insulin in plasma
+            obj.Ilb = obj.m2 / (obj.m1 + obj.m30) * obj.Ipb;
+            obj.Ib = obj.Ipb / obj.VI;
+            obj.kgri = obj.kmax;
+            obj.Gpb = obj.Gb * obj.VG; % basal glucose in plasma
+            obj.EGPb = obj.kp1 - obj.kp2 * obj.Gpb - obj.kp3 * obj.Ib;
+            obj.Gtb = 1 / obj.k2 * (obj.Fcns - obj.EGPb + obj.k1 * obj.Gpb);
+            obj.Vm0 = (obj.EGPb - obj.Fcns) * (obj.Km0 + obj.Gtb) / obj.Gtb;
+            obj.Isc1ss = obj.u2ss / (obj.kd + obj.ka1);
+            obj.Isc2ss = obj.Isc1ss * obj.kd / obj.ka2;
+            
+        end
+
         function obj = set_params(obj, params_to_estimate, p)
             fields = params_to_estimate; 
             for i = 1:numel(fields)
                 fieldName = fields{i}; 
                 if isprop(obj, fieldName) 
-                    obj.(fieldName) = p(i);
+                    obj.(fieldName) = p(i); 
                 else
                     warning('Property %s does not exist in patient_00.', fieldName);
                 end
             end
+
+            obj = obj.recompile();
+
         end
 
 
