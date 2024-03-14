@@ -16,7 +16,7 @@ classdef patient_00
         Td = 10; % glucose sensor delay
         
         % Glucose Kinetics
-        VG = 1.9152;
+        VG = 1.88;
         k1 = 0.065;
         k2 = 0.079;
         Gpb; % basal glucose in plasma

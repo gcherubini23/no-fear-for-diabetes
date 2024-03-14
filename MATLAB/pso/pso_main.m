@@ -21,8 +21,8 @@ true_patient = patient_01(basal);
 
 cgm_dt = 1;
 experiment_total_time = length(tools.CGMs) * cgm_dt;
-window_size = 25;
-% window_size = experiment_total_time;
+% window_size = 25;
+window_size = experiment_total_time;
 t = 0;
 
 [x0_, ymin1_] = tools.init_conditions(patient);
@@ -33,20 +33,19 @@ while ~stop_simulation(tools, cgm_dt, t)
     disp("-------")
     window = set_window(tools, window_size, t, cgm_dt, x0, ymin1);
     
-    objective_pso = @(p) objective(p, patient, model, window, tools, params_to_estimate);
+    objective_pso = @(p) objective_2(p, patient, model, window, tools, params_to_estimate);
     
     % options.ObjectiveLimit = 3.5;
-    options.MaxTime = 200;
+    options.MaxTime = 1800;
     if t > 0
         options.InitialPoints = points.X;
     end
-    options.Display = 'iter';
-    % options.MaxStallIterations = 20;
-    % options.FunctionTolerance = 0.1;
+    % options.Display = 'iter';
+    options.MaxIterations = 100;
+    options.FunctionTolerance = 1e-8;
     [final_p,fval,~,~,points] = particleswarm(objective_pso, nvars, lb, ub, options);
 
     % patient = patient.set_params(params_to_estimate, final_p);
-
     % k = 1;
     % x = x0_;
     % y = ymin1_;
@@ -74,7 +73,7 @@ while ~stop_simulation(tools, cgm_dt, t)
     t = t + window_size
     fval = fval
     final_p = final_p
-    % pause
+
 end
 
 disp('Done');
@@ -111,9 +110,43 @@ function f = objective(p, patient, model, window, tools, params_to_estimate)
     end
 
     gt = transpose(tools.BGs(window.t_start:window.t_end));
-    % f = ( mean( ((predictions/patient.VG) - gt).^2 ) )^(1/2);
     f = mean((predictions/patient.VG - gt).^2);
 
+end
+
+function f = objective_2(p, patient, model, window, tools, params_to_estimate)
+    cgm_dt = 1;
+    patient = patient.set_params(params_to_estimate,p);
+    t = window.t_start;
+    dt = window.dt;
+    predictions = [];
+    x = window.x0;
+    y = window.ymin1;
+    while t <= window.t_end
+        u_k.CHO = tools.CHOs(t);
+        u_k.IIR = tools.IIRs(t);
+
+        if t > window.t_start
+            [x_k, y_kminus1, ~] = tools.euler_solve(model,patient,x,y,u,dt);
+        else
+            x_k = x;
+            y_kminus1 = y;
+        end
+
+        x = x_k;
+        y = y_kminus1;
+        u = u_k;
+
+        if mod(t, cgm_dt) == 0
+            predictions(end+1) = x.Gpd;
+        end
+        
+        t = t + dt;
+    end
+
+    gt = transpose(tools.CGMs);
+    % f = mean((predictions/patient.VG - gt).^2);
+    f = mean(abs(predictions/patient.VG - gt).^2)^(1/2);
 end
 
 function window = set_window(tools, window_size, t, cgm_dt, x0, ymin1)

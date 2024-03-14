@@ -9,8 +9,8 @@ true_input_fields = {'CHO_consumed_rate','IIR_dt'};
 
 filename = "/Users/giovannicherubini/Desktop/Thesis/Code/data/1minsample/adult#001_5.csv";
 
-Q = eye(numel(state_fields)) * 1;    % TBD
-R = 20;  % TBD
+Q = eye(numel(state_fields)) * 15;    % TBD
+R = 100;  % TBD
 
 % ekf_dt_values = [0.1, 0.5, 1];
 ekf_dt_values = [1];
@@ -19,19 +19,18 @@ cgm_dt = 1;
 pump_dt = 1;
 
 tools = utils(filename, state_fields, extra_state_fields, input_fields, true_input_fields);
-model = non_linear_model(tools);
-lin_model = linearized_model(tools);
-ekf = ekf(model, lin_model, tools, ekf_dt, Q, R);
-
 basal = tools.IIRs(1);
 
 % params = patient_01(basal);
 
 params = patient_00(basal);
-
 if true
     run('param_model.m')
 end
+
+model = non_linear_model(tools);
+lin_model = linearized_model(tools);
+ekf = ekf(model, lin_model, tools, params, ekf_dt, Q, R);
 
 [x0, y_minus1] = tools.init_conditions(params);
 % [x0, y_minus1] = tools.rand_conditions(params);
@@ -47,7 +46,8 @@ for ekf_dt = ekf_dt_values
     
     ekf.dt = ekf_dt;
     model_predictions = [];
-    ground_truth = [];
+    residuals = [];
+    innovation_cov = [];
     EKF_state_tracking.mean = [];
     EKF_state_tracking.variance = [];
     z_history = [];
@@ -73,34 +73,25 @@ for ekf_dt = ekf_dt_values
         [u_k, new_input_detected] = sample_input(t, tools, pump_dt);
 
         % EKF
-
-        if i == 1
-            what = true;
-        else
-            what = false;
-        end
-        
-        if length(ekf_dt_values) == 3
-            what = true;
-        end
-
         if k == 0   % if starting now, set initial conditions
             xp_k = x;
             Pp_k = P;
             y_kminus1 = y;
         else
-            [xp_k, Pp_k, y_kminus1, v_kminus1] = ekf.process_update(x, y, u, P, params, what, t); % processupdate(x_k-1, y_k-2, u_k-1)
+            [xp_k, Pp_k, y_kminus1, v_kminus1] = ekf.process_update(x, y, u, P, params); % processupdate(x_k-1, y_k-2, u_k-1)
             v_history(end+1) = v_kminus1.CHO_consumed_rate;
         end
 
         x_current = xp_k;
         P_current = Pp_k;
 
-        if false && new_measurement_detected
+        if true && new_measurement_detected
             z_history(end+1) = z_k;
-            [xm_k, Pm_k] = ekf.measurement_update(xp_k,Pp_k,z_k,params);
+            [xm_k, Pm_k, residual_k, innov_cov_k] = ekf.measurement_update(xp_k,Pp_k,z_k);
             x_current = xm_k;
             P_current = Pm_k;
+            residuals(end+1) = residual_k;
+            innovation_cov(end+1) = innov_cov_k;
         end
         
 
@@ -114,7 +105,8 @@ for ekf_dt = ekf_dt_values
         % Store results
         model_predictions(:,end+1) = tools.convert_to_vector(x);   % (time k)
         u_history(end+1) = u.CHO;   % time k
-        
+
+        EKF_state_tracking.variance(end+1) = P_current(6,6);
         
         if k > 1
             y_history.CHO_to_eat(end+1) = y.CHO_to_eat;
@@ -126,6 +118,7 @@ for ekf_dt = ekf_dt_values
 
         end
         
+        % pause
     end
     
     v_history(end+1) = u.CHO;
@@ -153,6 +146,10 @@ for ekf_dt = ekf_dt_values
 
     disp("Done");
 end
+
+%% Sensor anomaly detection
+
+run("chi_sq_test.m")
 
 %% Plot
 

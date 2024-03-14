@@ -56,11 +56,6 @@ classdef linearized_model
             % Non-linear term Gt
             dUidt_dGt = (params.Vm0 + params.Vmx * x.X) * params.Km0 / ((params.Km0 + x.Gt)^2);
             dUidt_dX = params.Vmx * x.Gt / (params.Km0 + x.Gt);
-
-            % Uidt_linearized = dUidt_dGt * x.Gt + dUidt_dX * x.X;
-            % Vmt = params.Vm0 + params.Vmx * x.X;
-            % Kmt = params.Km0;
-            % Uidt = (Vmt * x.Gt) / (Kmt + x.Gt);
             
             % Non-linear term Kgut 
             Dbar = y.lastQsto + y.D * 1000;
