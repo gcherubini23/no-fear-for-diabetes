@@ -6,12 +6,12 @@ state_fields = {'Qsto1','Qsto2','Qgut','Gp','Gt','Gpd','Il','Ip','I1','Id','X','
 extra_state_fields = {'insulin_to_infuse','last_IIR','CHO_to_eat','D','lastQsto','is_eating'}; 
 input_fields = {'CHO', 'IIR'};
 true_input_fields = {'CHO_consumed_rate','IIR_dt'};
-filename = "/Users/giovannicherubini/Desktop/Thesis/Code/data/1minsample/adult#001_3.csv";
+filename = "/Users/giovannicherubini/Desktop/Thesis/Code/data/1minsample/adult#001_5.csv";
 
-params_to_estimate = {'kp2','k1','k2','kp1','ki','ke1','kmax','kmin','kabs','kp3','Vmx'};
-nvars = 11;
-ub = [0.5,0.5,0.5,6,0.01,0.001,0.1,0.01,0.1,0.1,0.1];
-lb = [0.0001,0.0001,0.0001,1,0.0001,0.0001,0.001,0.0001,0.001,0.0001,0.001];
+params_to_estimate = {'kp2','k1','k2','kp1','ki','ke1','kmax','kmin','kabs','kp3','Vmx','Gb'};
+nvars = 12;
+ub = [0.5,0.5,0.5,6,0.01,0.001,0.1,0.01,0.1,0.1,0.1,160];
+lb = [0.0001,0.0001,0.0001,1,0.0001,0.0001,0.001,0.0001,0.001,0.0001,0.001,50];
 
 tools = utils(filename, state_fields, extra_state_fields, input_fields, true_input_fields);
 model = non_linear_model(tools);
@@ -33,16 +33,16 @@ while ~stop_simulation(tools, cgm_dt, t)
     disp("-------")
     window = set_window(tools, window_size, t, cgm_dt, x0, ymin1);
     
-    objective_pso = @(p) objective_2(p, patient, model, window, tools, params_to_estimate);
+    objective_pso = @(p) objective(p, patient, model, window, tools, params_to_estimate);
     
     % options.ObjectiveLimit = 3.5;
     options.MaxTime = 1800;
     if t > 0
         options.InitialPoints = points.X;
     end
-    % options.Display = 'iter';
+    options.Display = 'iter';
     options.MaxIterations = 100;
-    options.FunctionTolerance = 1e-8;
+    options.FunctionTolerance = 0.01;
     [final_p,fval,~,~,points] = particleswarm(objective_pso, nvars, lb, ub, options);
 
     % patient = patient.set_params(params_to_estimate, final_p);
@@ -146,7 +146,8 @@ function f = objective_2(p, patient, model, window, tools, params_to_estimate)
 
     gt = transpose(tools.CGMs);
     % f = mean((predictions/patient.VG - gt).^2);
-    f = mean(abs(predictions/patient.VG - gt).^2)^(1/2);
+    % f = mean(abs(predictions/patient.VG - gt).^2)^(1/2);
+    f = mean(abs(log(gt)-log(predictions/patient.VG)));
 end
 
 function window = set_window(tools, window_size, t, cgm_dt, x0, ymin1)

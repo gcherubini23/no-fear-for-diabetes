@@ -7,7 +7,16 @@ extra_state_fields = {'insulin_to_infuse','last_IIR','CHO_to_eat','D','lastQsto'
 input_fields = {'CHO', 'IIR'};
 true_input_fields = {'CHO_consumed_rate','IIR_dt'};
 
-filename = "/Users/giovannicherubini/Desktop/Thesis/Code/data/1minsample/adult#001_5.csv";
+simulate_anomalies = false;
+use_tuned_model = true;
+use_true_model = false;
+use_known_init_conditions = true;
+do_measurment_update = true;
+do_chi_sq_test = true;
+do_cusum_test = false;
+do_plots = true;
+
+filename = "/Users/giovannicherubini/Desktop/Thesis/Code/data/1minsample/adult#001_6.csv";
 
 Q = eye(numel(state_fields)) * 15;    % TBD
 R = 100;  % TBD
@@ -21,19 +30,28 @@ pump_dt = 1;
 tools = utils(filename, state_fields, extra_state_fields, input_fields, true_input_fields);
 basal = tools.IIRs(1);
 
-% params = patient_01(basal);
+if simulate_anomalies
+    run('error_gen.m')
+end
 
-params = patient_00(basal);
-if true
-    run('param_model.m')
+if use_true_model
+    params = patient_01(basal);
+else
+    params = patient_00(basal);
+    if use_tuned_model
+        run('param_model.m')
+    end
 end
 
 model = non_linear_model(tools);
 lin_model = linearized_model(tools);
 ekf = ekf(model, lin_model, tools, params, ekf_dt, Q, R);
 
-[x0, y_minus1] = tools.init_conditions(params);
-% [x0, y_minus1] = tools.rand_conditions(params);
+if use_known_init_conditions
+    [x0, y_minus1] = tools.init_conditions(params);
+else
+    [x0, y_minus1] = tools.rand_conditions(params);
+end
 
 % Loop over the values of ekf_dt
 prediction.first = [];
@@ -85,7 +103,7 @@ for ekf_dt = ekf_dt_values
         x_current = xp_k;
         P_current = Pp_k;
 
-        if true && new_measurement_detected
+        if do_measurment_update && new_measurement_detected
             z_history(end+1) = z_k;
             [xm_k, Pm_k, residual_k, innov_cov_k] = ekf.measurement_update(xp_k,Pp_k,z_k);
             x_current = xm_k;
@@ -149,11 +167,17 @@ end
 
 %% Sensor anomaly detection
 
-run("chi_sq_test.m")
+if do_chi_sq_test
+    run("chi_sq_test.m")
+elseif do_cusum_test
+    run("cusum_test.m")
+end
 
 %% Plot
 
-run('plotting.m');
+if do_plots
+    run('plotting.m');
+end
 
 %% Extra functions
 

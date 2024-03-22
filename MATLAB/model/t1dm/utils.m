@@ -63,7 +63,9 @@ classdef utils
 
     methods
         function obj = utils(filename, state_fields, extra_state_fields, input_fields, true_input_fields)
-            obj = obj.read_file(filename);
+            if ~strcmp(filename, 'none')
+                obj = obj.read_file(filename);
+            end
             obj.state_fields = state_fields;
             obj.extra_state_fields = extra_state_fields; 
             obj.input_fields = input_fields;

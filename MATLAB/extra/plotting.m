@@ -1,10 +1,12 @@
-close all
+% close all
 
 only_Gpd = true;
 all_states = false;
 multiple_dt = false;
+
 residual_plot = false;
 anomalies_plot = true;
+cusum_test_plot = false;
 
 if ekf_dt <= 1
     dt_EKF_Model = ekf_dt; % Time step for EKF mean and model predictions
@@ -39,8 +41,8 @@ if only_Gpd
     hold on
     plot(timeVecEKF_Model, model_predictions(6,1:numPointsEKFModel)/params.VG, 'b-', 'DisplayName', 'Nominal model + PSO optimization');
     hold on
-    stem(timeVecBGs, tools.CGMs(1:numPointsBGs), 'x', 'MarkerSize', 6, 'LineStyle', 'none', 'DisplayName', 'CGM')
-    if anomalies_plot
+    plot(timeVecBGs, tools.CGMs(1:numPointsBGs), '-o', 'MarkerSize', 6, 'DisplayName', 'CGM')
+    if anomalies_plot && (do_chi_sq_test || do_cusum_test)
        % hold on;
        % stem(timeVecBGs, tools.CGMs(1:numPointsBGs), 'o', 'MarkerSize', 6, 'LineStyle', 'none', 'DisplayName', 'Anomaly')
         max_d = 250;
@@ -211,4 +213,24 @@ if residual_plot
     xlabel('Time [min]');
     ylabel('Residual [mg/kg]');
 
+end
+
+if cusum_test_plot && do_cusum_test
+    figure;
+    subplot(3,1,1)
+    plot(1:time, Ss, 'm-', 'DisplayName', 'S');
+    hold on
+    tau_line = tau * ones([1, length(Ss)]);
+    plot(1:time, tau_line, 'r-', 'DisplayName', 'tau');
+    legend show;
+    subplot(3,1,2)
+    plot(1:time, residuals, 'b-', 'DisplayName', 'Residual');
+    hold on
+    % b_line = b * ones([1, length(residuals)]);
+    % plot(1:time, b_line, 'r-', 'DisplayName', 'b');
+    legend show;
+    subplot(3,1,3)
+    plot(1:time, anomalies, 'g-', 'DisplayName', 'Anomaly');
+    legend show;
+    set(gcf, 'Position', get(0, 'Screensize')); % Maximize figure window for clarity
 end
