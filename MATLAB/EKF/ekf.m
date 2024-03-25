@@ -15,8 +15,6 @@ classdef ekf
     lin_model;
     tools;
 
-    dx_dts;
-
     end
 
     methods
@@ -32,9 +30,9 @@ classdef ekf
             obj.H = [0,0,0,0,0,1/params.VG,0,0,0,0,0,0,0];
         end      
         
-        function [xp_k, Pp_k, y_kminus1, v_kminus1] = process_update(obj, x_kminus1, y_kminus2, u_kminus1, P_kminus1, params)         
+        function [xp_k, Pp_k, y_kminus1, v_kminus1] = process_update(obj, x_kminus1, y_kminus2, u_kminus1, P_kminus1, dt, params)         
             % Euler
-            [xp_k, y_kminus1, v_kminus1] = obj.tools.euler_solve(obj.model,params,x_kminus1,y_kminus2,u_kminus1,obj.dt);
+            [xp_k, y_kminus1, v_kminus1] = obj.tools.euler_solve(obj.model,params,x_kminus1,y_kminus2,u_kminus1,dt);
             obj.lin_model = obj.lin_model.linearize(x_kminus1,y_kminus1,params);
             Pp_k = obj.lin_model.A * P_kminus1 * transpose(obj.lin_model.A) + obj.Q;
         end
@@ -47,6 +45,32 @@ classdef ekf
             vec_xm = vec_xp + obj.K * residual;
             Pm = (eye(length(vec_xp)) - obj.K * obj.H) * Pp * transpose(eye(length(vec_xp)) - obj.K * obj.H) + obj.K * obj.R * transpose(obj.K);
             xm = obj.tools.convert_to_struct(vec_xm);
+        end
+
+        function [x_horizon, P_horizon, y_horizon_minus1, v_horizon_minus1] = predict(obj, x_k, y_kminus1, u_k, P_k, horizon, params)
+            t = 0;
+            x = x_k;
+            y = y_kminus1;
+            u = u_k;
+            P = P_k;
+            v.CHO_consumed_rate = 0;
+            v.IIR_dt = 0;
+            while t < horizon
+                step_dt = min(obj.dt, horizon - t);             
+                [x_new, P_new, y_new, v_new] = obj.process_update(x,y,u,P,step_dt,params);
+                x = x_new;
+                P = P_new;
+                y = y_new;
+                v = v_new;
+                u.CHO = 0;
+                u.IIR = 0;  % to consider using basal rate
+                t = t + step_dt;
+            end
+   
+            x_horizon = x;
+            P_horizon = P;
+            y_horizon_minus1 = y;
+            v_horizon_minus1 = v;
         end
 
     end

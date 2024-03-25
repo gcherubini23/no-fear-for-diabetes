@@ -9,6 +9,7 @@ classdef utils
         IIRs;
         CHOs;
         BGs;
+        Time;
     end
 
     methods(Static)         
@@ -108,6 +109,7 @@ classdef utils
             obj.IIRs = dataTable.insulin;
             obj.CHOs = dataTable.CHO;
             obj.BGs = dataTable.BG;
+            obj.Time = dataTable.Time;
         end
 
         function [x_next, y, v] = euler_solve(obj, model, params, x, y_old, u, dt)    

@@ -41,7 +41,7 @@ if only_Gpd
     hold on
     plot(timeVecEKF_Model, model_predictions(6,1:numPointsEKFModel)/params.VG, 'b-', 'DisplayName', 'Nominal model + PSO optimization');
     hold on
-    plot(timeVecBGs, tools.CGMs(1:numPointsBGs), '-o', 'MarkerSize', 6, 'DisplayName', 'CGM')
+    % plot(timeVecBGs, tools.CGMs(1:numPointsBGs), '-o', 'MarkerSize', 6, 'DisplayName', 'CGM')
     if anomalies_plot && (do_chi_sq_test || do_cusum_test)
        % hold on;
        % stem(timeVecBGs, tools.CGMs(1:numPointsBGs), 'o', 'MarkerSize', 6, 'LineStyle', 'none', 'DisplayName', 'Anomaly')

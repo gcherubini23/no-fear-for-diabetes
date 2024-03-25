@@ -65,10 +65,10 @@ classdef patient_00
 
     methods
         function obj = patient_00(basal)
-            obj.basal = basal;
-            obj.u2ss = basal * 6000 / obj.BW;
+            % obj.basal = basal;
+            % obj.u2ss = basal * 6000 / obj.BW;
 
-            % obj.basal = obj.u2ss * obj.BW / 6000;
+            obj.basal = obj.u2ss * obj.BW / 6000;
 
             obj.m30 = obj.m1 * obj.HEb / (1 - obj.HEb);
             obj.Ipb = obj.u2ss / (obj.m2 + obj.m4 - obj.m1 * obj.m2 / (obj.m1 + obj.m30));  % basal insulin in plasma
