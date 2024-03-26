@@ -67,11 +67,11 @@ if only_Gpd
     hold on
     
     if plot_anomalies
-        for i = 1:length(anomaly_detector.time)
-            pl = xline(anomaly_detector.time(i), 'LineWidth', 2, 'Color', [1 0 0]);
-            if i == 1
-                pl.DisplayName = 'Anomaly';
-            end
+        % for i = 1:length(anomaly_detector.time)
+        %     pl = xline(anomaly_detector.time(i), 'LineWidth', 2, 'Color', [1 0 0]);
+        %     if i == 1
+        %         pl.DisplayName = 'Anomaly';
+        %     end
         end
     end
     

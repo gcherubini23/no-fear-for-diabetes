@@ -59,7 +59,7 @@ if plot_real_data_in_advance
     figure;
 
     subplot(3,1,1)
-    plot(patientData.CGM.time, patientData.CGM.values, '-o', 'DisplayName', 'CGM');
+    plot(patientData.CGM.time, patientData.CGM.values, '-o', 'DisplayName', 'CGM', 'Color', 'cyan', 'MarkerSize', 4);
     xlabel('Time');
     legend show
     grid on

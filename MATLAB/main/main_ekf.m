@@ -10,14 +10,20 @@ true_input_fields = {'CHO_consumed_rate','IIR_dt'};
 %% Load data
 
 simulate_anomalies = false;
-use_tuned_model = false;
-use_true_model = true;
+use_tuned_model = true;
+use_true_model = false;
 use_known_init_conditions = true;
-do_measurment_update = false;
-do_chi_sq_test = false;
+do_measurment_update = true;
+do_chi_sq_test = true;
 do_cusum_test = false;
+use_true_patient = false;
 do_plots = true;
-use_true_patient = true;
+if do_plots
+    all_states = false;
+    only_Gpd = true;
+    plot_anomalies = true;
+    show_confidence_interval = false;
+end
 
 if ~use_true_patient
     filename = "/Users/giovannicherubini/Desktop/Thesis/Code/data/1minsample/adult#001_6.csv";
@@ -29,11 +35,13 @@ if ~use_true_patient
     patientData.IIR.values = tools.IIRs;
     patientData.IIR.time = tools.Time;
     basal = tools.IIRs(1);
+    increment = minutes(1);
 else
     filename = "none";
     tools = utils(filename, state_fields, extra_state_fields, input_fields, true_input_fields);
     run('database_preprocessor.m')
     basal = 0;
+    increment = seconds(1);
 end
 
 %% Initialization
@@ -41,9 +49,7 @@ end
 Q = eye(numel(state_fields)) * 15;    % TBD
 R = 100;  % TBD
 
-% ekf_dt_values = [0.1, 0.5, 1];
-ekf_dt_values = [1];
-ekf_dt = ekf_dt_values(1);
+ekf_dt = 1; % [min]
 
 if simulate_anomalies
     run('error_gen.m')
@@ -61,6 +67,8 @@ end
 model = non_linear_model(tools);
 lin_model = linearized_model(tools);
 ekf = ekf(model, lin_model, tools, params, ekf_dt, Q, R);
+alpha = 0.01;
+anomaly_detector = anomaly_detector(alpha);
 
 if use_known_init_conditions
     [x0, y_minus1] = tools.init_conditions(params);
@@ -77,104 +85,82 @@ end
 t_start = min([min(patientData.CGM.time), min(patientData.Meal.time), min(patientData.IIR.time)]);
 t_end = max([max(patientData.CGM.time), max(patientData.Meal.time), max(patientData.IIR.time)]);
 
-% Loop over the values of ekf_dt
-prediction.first = [];
-prediction.second = [];
-prediction.third = [];
-mse = [];
-rmse = [];
-i = 1;
-for ekf_dt = ekf_dt_values
-    
-    ekf.dt = ekf_dt;
-    residuals = [];
-    innovation_cov = [];
-    EKF_state_tracking.mean = [];
-    EKF_state_tracking.variance = [];
-    EKF_state_tracking.time = datetime([], 'ConvertFrom', 'posixtime', 'Format', 'dd-MMM-yyyy HH:mm:ss');
-    z_history = [];
-    u_history = [];
-    v_history = [];
-    y_history.CHO_to_eat = [];
-    y_history.D = [];
-    y_history.last_Q_sto = [];
-    y_history.is_eating = [];
-    y_history.last_IIR = [];
-    y_history.insulin_to_infuse = [];
-    
-    t = t_start;
-    x = x0;
-    y = y_minus1;
-    u = u0;
-    last_process_update = t_start;
-    P = eye(numel(state_fields),numel(state_fields))*2200;
+ekf.dt = ekf_dt;
+residuals = [];
+innovation_cov = [];
+EKF_state_tracking.mean = [];
+EKF_state_tracking.variance = [];
+EKF_state_tracking.time = datetime([], 'ConvertFrom', 'posixtime', 'Format', 'dd-MMM-yyyy HH:mm:ss');
+anomaly_detector.time = datetime([], 'ConvertFrom', 'posixtime', 'Format', 'dd-MMM-yyyy HH:mm:ss');
+z_history = [];
+u_history = [];
+v_history = [];
+y_history.CHO_to_eat = [];
+y_history.D = [];
+y_history.last_Q_sto = [];
+y_history.is_eating = [];
+y_history.last_IIR = [];
+y_history.insulin_to_infuse = [];
 
-    while t <= t_end
+t = t_start;
+x = x0;
+y = y_minus1;
+u = u0;
+last_process_update = t_start;
+P = eye(numel(state_fields),numel(state_fields))*2200;
 
-        [z_k, new_measurement_detected] = sample_measurement(t, patientData);
-        [u_k, new_input_detected] = sample_input(t, patientData);
+while t <= t_end
 
-        if new_input_detected || new_measurement_detected
+    [z_k, new_measurement_detected] = sample_measurement(t, patientData);
+    [u_k, new_input_detected] = sample_input(t, patientData);
 
-            dt = convert_to_minutes(t - last_process_update);
-            [xp_k, Pp_k, y_kminus1, v_kminus1] = ekf.predict(x, y, u, P, dt, params);
-            x_current = xp_k;
-            P_current = Pp_k;
-                        
-            if new_measurement_detected && do_measurment_update
-                [xm_k, Pm_k, residual_k, innov_cov_k] = ekf.measurement_update(xp_k,Pp_k,z_k);
+    if new_input_detected || new_measurement_detected
+
+        dt = convert_to_minutes(t - last_process_update);
+        [xp_k, Pp_k, y_kminus1, v_kminus1] = ekf.predict(x, y, u, P, dt, params);
+        x_current = xp_k;
+        P_current = Pp_k;
+                    
+        if new_measurement_detected && do_measurment_update
+            [xm_k, Pm_k, residual_k, innov_cov_k] = ekf.measurement_update(xp_k,Pp_k,z_k);
+            if do_chi_sq_test || do_cusum_test
+                if do_chi_sq_test
+                    anomaly = anomaly_detector.chi_squared_test(residual_k,innov_cov_k);
+                else
+                    [anomaly, anomaly_detector] = anomaly_detector.cusum_test(residual_k,innov_cov_k);
+                end
+                if ~anomaly
+                    x_current = xm_k;
+                    P_current = Pm_k;
+                else
+                    anomaly_detector.time(end+1, :) = t;
+                end
+            else
                 x_current = xm_k;
                 P_current = Pm_k;
             end
-
-            x = x_current;
-            P = P_current;
-            y = y_kminus1;
-            u = u_k;
-                
-            last_process_update = t;
-
-            EKF_state_tracking.mean(:,end+1) = tools.convert_to_vector(x);   % (time k)
-            % EKF_state_tracking.variance(:,:,end+1) = P;
-            EKF_state_tracking.variance(end+1) = P(6,6);
-            EKF_state_tracking.time(end+1, :) = t;
         end
-           
-        t = t + seconds(1);
+
+        x = x_current;
+        P = P_current;
+        y = y_kminus1;
+        u = u_k;
+            
+        last_process_update = t;
+
+        EKF_state_tracking.mean(:,end+1) = tools.convert_to_vector(x);   % (time k)
+        % EKF_state_tracking.variance(:,:,end+1) = P;
+        EKF_state_tracking.variance(end+1) = P(6,6);
+        EKF_state_tracking.time(end+1, :) = t;
     end
-    
-    % v_history(end+1) = u.CHO;
-    % y_history.CHO_to_eat(end+1) = y.CHO_to_eat;
-    % y_history.D(end+1) = y.D;
-    % y_history.last_Q_sto(end+1) = y.lastQsto;
-    % y_history.is_eating(end+1) = y.is_eating;
-    % y_history.insulin_to_infuse(end+1) = y.insulin_to_infuse;
-    % y_history.last_IIR(end+1) = y.last_IIR;
-    % 
-    % if length(ekf_dt_values) > 1
-    %     if i == 1
-    %         prediction.first = EKF_state_tracking;
-    %     elseif i == 2
-    %         prediction.second = EKF_state_tracking;    
-    %     else
-    %         prediction.third = EKF_state_tracking;
-    %     end
-    %     i = i+1;
-    % end
-    % 
-    % mse(end+1) = mean((transpose(tools.BGs)-(EKF_state_tracking.mean(6,1:1/ekf_dt:end)/params.VG)).^2);
-    % rmse(end+1) = mean( ((EKF_state_tracking.mean(6,1:1/ekf_dt:end)/params.VG) - (transpose(tools.BGs))).^2 )^(1/2);    % RMSE
-
-    disp("Done");
+       
+    t = t + increment;
 end
 
-%% Sensor anomaly detection
+% mse(end+1) = mean((transpose(tools.BGs)-(EKF_state_tracking.mean(6,1:1/ekf_dt:end)/params.VG)).^2);
+% rmse(end+1) = mean( ((EKF_state_tracking.mean(6,1:1/ekf_dt:end)/params.VG) - (transpose(tools.BGs))).^2 )^(1/2);    % RMSE
 
-if do_chi_sq_test
-    run("chi_sq_test.m")
-elseif do_cusum_test
-    run("cusum_test.m")
-end
+disp("Done");
 
 %% Plot
 
