@@ -63,18 +63,14 @@ if only_Gpd
         plot(tools.Time, tools.BGs, 'b-', 'DisplayName', 'Ground truth');
         hold on
     end
-    plot(patientData.CGM.time, patientData.CGM.values, 'DisplayName', 'CGM', 'Marker', 'o', 'Color', 'cyan', 'MarkerSize', 4)
+    plot(patientData.CGM.time, patientData.CGM.values, 'o', 'DisplayName', 'CGM', 'Color', 'cyan', 'MarkerSize', 4)
     hold on
     
-    if plot_anomalies
-        for i = 1:length(anomaly_detector.time)
-            pl = xline(anomaly_detector.time(i), 'LineWidth', 2, 'Color', [1 0 0]);
-            if i == 1
-                pl.DisplayName = 'Anomaly';
-            end
-        end
+    if plot_anomalies        
+        plot(anomaly_detector.time, anomaly_detector.anomalies, 'o','DisplayName', 'Anomalies', 'Color', [1 0 0], 'MarkerSize', 4)
+        hold on 
     end
     
-    legend show 'EKF' 'Ground truth' 'CGM' 'Anomaly';
+    legend show;
     set(gcf, 'Position', get(0, 'Screensize'));
 end

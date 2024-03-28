@@ -2,6 +2,7 @@ classdef anomaly_detector
     properties
         alpha;
         time = datetime([], 'ConvertFrom', 'posixtime', 'Format', 'dd-MMM-yyyy HH:mm:ss');
+        anomalies = [];
     end
 
     methods

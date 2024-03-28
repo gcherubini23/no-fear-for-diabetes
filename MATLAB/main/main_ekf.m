@@ -34,6 +34,8 @@ if ~use_true_patient
     patientData.Meal.time = tools.Time;
     patientData.IIR.values = tools.IIRs;
     patientData.IIR.time = tools.Time;
+    patientData.BG.values = tools.BGs;
+    patientData.BG.time = tools.Time;
     basal = tools.IIRs(1);
     increment = minutes(1);
 else
@@ -45,10 +47,8 @@ else
 end
 
 %% Initialization
-
 Q = eye(numel(state_fields)) * 15;    % TBD
 R = 100;  % TBD
-
 ekf_dt = 1; % [min]
 
 if simulate_anomalies
@@ -67,6 +67,8 @@ end
 model = non_linear_model(tools);
 lin_model = linearized_model(tools);
 ekf = ekf(model, lin_model, tools, params, ekf_dt, Q, R);
+ekf.dt = ekf_dt;
+
 alpha = 0.01;
 anomaly_detector = anomaly_detector(alpha);
 
@@ -80,27 +82,19 @@ else
     u0.IIR = 0;
 end
 
-%% Start simulation
-
 t_start = min([min(patientData.CGM.time), min(patientData.Meal.time), min(patientData.IIR.time)]);
 t_end = max([max(patientData.CGM.time), max(patientData.Meal.time), max(patientData.IIR.time)]);
-
-ekf.dt = ekf_dt;
-residuals = [];
-innovation_cov = [];
 EKF_state_tracking.mean = [];
 EKF_state_tracking.variance = [];
 EKF_state_tracking.time = datetime([], 'ConvertFrom', 'posixtime', 'Format', 'dd-MMM-yyyy HH:mm:ss');
-anomaly_detector.time = datetime([], 'ConvertFrom', 'posixtime', 'Format', 'dd-MMM-yyyy HH:mm:ss');
-z_history = [];
-u_history = [];
-v_history = [];
-y_history.CHO_to_eat = [];
-y_history.D = [];
-y_history.last_Q_sto = [];
-y_history.is_eating = [];
-y_history.last_IIR = [];
-y_history.insulin_to_infuse = [];
+% u_history = [];
+% v_history = [];
+% y_history.CHO_to_eat = [];
+% y_history.D = [];
+% y_history.last_Q_sto = [];
+% y_history.is_eating = [];
+% y_history.last_IIR = [];
+% y_history.insulin_to_infuse = [];
 
 t = t_start;
 x = x0;
@@ -109,6 +103,8 @@ u = u0;
 last_process_update = t_start;
 P = eye(numel(state_fields),numel(state_fields))*2200;
 
+%% Start simulation
+profile on
 while t <= t_end
 
     [z_k, new_measurement_detected] = sample_measurement(t, patientData);
@@ -134,6 +130,7 @@ while t <= t_end
                     P_current = Pm_k;
                 else
                     anomaly_detector.time(end+1, :) = t;
+                    anomaly_detector.anomalies(end+1) = z_k;
                 end
             else
                 x_current = xm_k;
@@ -154,11 +151,24 @@ while t <= t_end
         EKF_state_tracking.time(end+1, :) = t;
     end
        
-    t = t + increment;
+    t = next_step(t, increment, patientData);
 end
+profile off
+profile viewer
 
-% mse(end+1) = mean((transpose(tools.BGs)-(EKF_state_tracking.mean(6,1:1/ekf_dt:end)/params.VG)).^2);
-% rmse(end+1) = mean( ((EKF_state_tracking.mean(6,1:1/ekf_dt:end)/params.VG) - (transpose(tools.BGs))).^2 )^(1/2);    % RMSE
+if ~use_true_patient
+    mse = mean((transpose(patientData.BG.values) - EKF_state_tracking.mean(6, :)/params.VG).^2)
+    rmse = mse^(1/2)
+else
+    mse = 0;
+    for i = 1:length(patientData.CGM.values)
+        t = patientData.CGM.time(i);
+        idx = find(EKF_state_tracking.time == t);
+        mse = mse + (patientData.CGM.values(i) - EKF_state_tracking.mean(6,idx)/params.VG)^2;
+    end
+    mse = mse / i
+    rmse = mse^(1/2)
+end
 
 disp("Done");
 
@@ -199,4 +209,8 @@ end
 function dt = convert_to_minutes(duration)
     [hours, minutes, seconds] = hms(duration);
     dt = hours * 60 + minutes + seconds / 60;
+end
+
+function t = next_step(t, increment, patientData)
+    t = t + increment;
 end
