@@ -18,7 +18,7 @@ classdef ekf
     y_history = [];
     u_history = [];
     v_history = [];
-    t_history = [];
+    t
 
     end
 
@@ -91,7 +91,12 @@ classdef ekf
             v.CHO_consumed_rate = 0;
             v.IIR_dt = 0;
 
-            time = t0;
+            if isempty(obj.u_history)
+                    obj.u_history = u;
+                    obj.v_history = v;
+                    obj.y_history = y;
+            end
+
             while t < horizon
                 step_dt = min(obj.dt, horizon - t);             
                 [x_new, P_new, y_new, v_new] = obj.process_update(x,y,u,P,step_dt,params);
@@ -100,27 +105,13 @@ classdef ekf
                 y = y_new;
                 v = v_new;
 
-                if isempty(obj.u_history)
-                    obj.u_history = u;
-                    obj.v_history = v;
-                    obj.y_history = y;
-                    obj.t_history = t0;
-                else
-                    % if obj.t_history(end,:) == time
-                    %     disp('Sono ugualiiiiiii')
-                    %     time = time
-                    %     q = 9;
-                    % end
-                    obj.u_history(end+1) = u;
-                    obj.v_history(end+1) = v;
-                    obj.y_history(end+1) = y;
-                    obj.t_history(end+1,:) = time;
-                end
+                obj.u_history(end+1) = u;
+                obj.v_history(end+1) = v;
+                obj.y_history(end+1) = y;
 
                 u.CHO = 0;
-                u.IIR = 0;
+                u.IIR = 0;  % to consider using basal rate
                 t = t + step_dt;
-                time = time + minutes(step_dt);
 
             end
    

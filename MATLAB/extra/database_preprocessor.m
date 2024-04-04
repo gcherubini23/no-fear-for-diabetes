@@ -18,14 +18,10 @@ for filename = filenames
 
 end
 
-%% Select days and patient and plot
-plot_real_data_in_advance = true;
-% patient_ID = 3;
-% date = '25-Apr-2015';
-% date = '24-Apr-2015';
+%% Select days and patient
 patient_ID = 11;
-date = '10-Feb-2013';
-start_day = datetime(date,'InputFormat', 'dd-MMM-yyyy');
+date = '14-Feb-2013 06:30:00';
+start_day = datetime(date,'InputFormat', 'dd-MMM-yyyy HH:mm:ss');
 
 days_to_examine = 2;
 % days_to_examine = 'all';
@@ -34,14 +30,9 @@ idx = extract_idx(databaseCGM, patient_ID, start_day, days_to_examine);
 patientData.CGM.time = databaseCGM.Time(idx);
 patientData.CGM.values = databaseCGM.CGM(idx);
 
-% idx = extract_idx(databaseInsulin, patient_ID, start_day, days_to_examine);
-% patientData.Insulin.time = databaseInsulin.Time(idx);
-% patientData.Insulin.values = databaseInsulin.DeliveredValue(idx);
-% To convert from Insuln [U] to IIR [U/min]
 idx = extract_idx(databaseInsulin, patient_ID, start_day, days_to_examine);
 patientData.IIR.time = databaseInsulin.Time(idx);
 patientData.IIR.values = databaseInsulin.DeliveredValue(idx);
-
 
 idx = extract_idx(databaseMeal, patient_ID, start_day, days_to_examine);
 patientData.Meal.time = databaseMeal.Time(idx);
@@ -50,38 +41,6 @@ patientData.Meal.values = databaseMeal.MealSize(idx);
 idx = extract_idx(databaseSystem, patient_ID, start_day, days_to_examine);
 patientData.System.time = databaseSystem.Time(idx);
 patientData.System.DiAsState = databaseSystem.DiAsState(idx);
-
-close all
-clc
-
-if plot_real_data_in_advance
-
-    figure;
-
-    subplot(3,1,1)
-    plot(patientData.CGM.time, patientData.CGM.values, '-o', 'DisplayName', 'CGM', 'Color', 'cyan', 'MarkerSize', 4);
-    xlabel('Time');
-    legend show
-    grid on
-
-    subplot(3,1,2)
-    % stem(patientData.Insulin.time, patientData.Insulin.values, 'o', 'Color', 'r', 'DisplayName', 'Insulin');
-    stem(patientData.IIR.time, patientData.IIR.values, 'o', 'Color', 'r', 'DisplayName', 'Insulin');
-    hold on
-    stem(patientData.Meal.time, patientData.Meal.values, 'square', 'Color', 'g', 'DisplayName', 'Meal');
-    xlabel('Time');
-    legend show
-    grid on
-
-    subplot(3,1,3)
-    plot(patientData.System.time, patientData.System.DiAsState, '.', 'Color', 'm', 'DisplayName', 'Operational mode');
-    xlabel('Time');
-    legend show
-    grid on
-    
-    set(gcf, 'Position', get(0, 'Screensize'));
-
-end
 
 function idx = extract_idx(database, patient_ID, start_day, days_to_examine)
     if ~strcmp(string(days_to_examine), 'all')

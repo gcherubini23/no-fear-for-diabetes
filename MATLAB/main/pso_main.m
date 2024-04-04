@@ -8,9 +8,11 @@ input_fields = {'CHO', 'IIR'};
 true_input_fields = {'CHO_consumed_rate','IIR_dt'};
 
 params_to_estimate = {'kp2','k1','k2','kp1','ki','ke1','kmax','kmin','kabs','kp3','Vmx','Gb'};
-nvars = 12;
-ub = [0.5,0.5,0.5,6,0.01,0.001,0.1,0.01,0.1,0.1,0.1,160];
-lb = [0.0001,0.0001,0.0001,1,0.0001,0.0001,0.001,0.0001,0.001,0.0001,0.001,50];
+nvars = length(params_to_estimate);
+ub = [0.02,   0.5,    0.5,    5,   0.01,   0.001,  0.1,  0.01,   0.1,  0.1,    0.1,   160];
+%     kp2,    k1,     k2,     kp1, ki,     ke1,    kmax, kmin,   kabs, kp3,    Vmx,   Gb
+lb = [0.0001, 0.0001, 0.0001, 2,   0.0040, 0.0001, 0.01, 0.0001, 0.01, 0.0001, 0.001, 90];
+
 
 % params_to_estimate = {'kp2','k1','k2','kp1','ki','ke1','kmax','kmin','kabs','kp3','Vmx'};
 % nvars = 11;
@@ -36,14 +38,12 @@ if ~use_true_patient
     patientData.BG.values = tools.BGs;
     patientData.BG.time = tools.Time;
     basal = tools.IIRs(1);
-    increment = minutes(1);
     patient = patient_00(basal);
 else
     filename = "none";
     tools = utils(filename, state_fields, extra_state_fields, input_fields, true_input_fields);
     run('database_preprocessor.m')
     basal = 0;
-    increment = seconds(1);
     dailyBasal = 18;
     patient = patient_11(dailyBasal);
 end
@@ -55,6 +55,7 @@ experiment_total_time = t_end - t_start;
 model = non_linear_model(tools);
 window_size = experiment_total_time;
 
+%%
 Q = eye(numel(state_fields)) * 15;    % TBD
 R = 100;  % TBD
 ekf_dt = 1; % [min]
@@ -75,17 +76,19 @@ while t < t_end
     disp("-------")
     window = set_window(window_size, t, x0, ymin1, u0, t_end);
     
-    objective_pso = @(p) objective(p, patient, ekf, patientData, window, params_to_estimate, use_CGM_to_tune, increment);
+    objective_pso = @(p) objective(p, patient, ekf, patientData, window, params_to_estimate, use_CGM_to_tune);
     
     % options.MaxTime = 3600;
     if t > t_start
         options.InitialPoints = points.X;
     end
     options.Display = 'iter';
-    options.MaxIterations = 100;
+    options.MaxIterations = 200;
     options.FunctionTolerance = 0.01;
     [final_p,fval,~,~,points] = particleswarm(objective_pso, nvars, lb, ub, options);
 
+    % [final_p,fval] = particleswarm(objective_pso, nvars, lb, ub, options);
+    
     % To implement recursive approach
     
     t = t + window.size;
@@ -98,7 +101,7 @@ disp('Done');
 
 %% Functions
 
-function f = objective(p, patient, ekf, patientData, window, params_to_estimate, use_CGM_to_tune, increment)
+function f = objective(p, patient, ekf, patientData, window, params_to_estimate, use_CGM_to_tune)
     patient = patient.set_params(params_to_estimate,p);
     t = window.t_start;
     predictions = [];
@@ -108,7 +111,6 @@ function f = objective(p, patient, ekf, patientData, window, params_to_estimate,
     last_process_update = window.t_start;
     % P = eye(numel(ekf.state_fields),numel(ekf.state_fields))*2200;
     measurements = [];
-    profile on
     while t <= window.t_end
         [uk, new_input_detected] = sample_input(t, patientData);
         [zk, new_measurement_detected] = sample_measurement(t, patientData);
@@ -126,13 +128,10 @@ function f = objective(p, patient, ekf, patientData, window, params_to_estimate,
             end
             last_process_update = t;
         end
-        t = next_step(t, increment, patientData);
+        t = next_step(t, patientData);
     end
     
     if use_CGM_to_tune
-        % idx = find(patientData.CGM.time >= window.t_start & ...
-        %             patientData.CGM.time <= window.t_end);
-        % gt = transpose(patientData.CGM.values(idx));
         gt = measurements;
     else
         idx = find(patientData.BG.time >= window.t_start & ...
@@ -140,10 +139,7 @@ function f = objective(p, patient, ekf, patientData, window, params_to_estimate,
         gt = transpose(patientData.BG.values(idx));
     end
     % f = mean((predictions/patient.VG - gt).^2);
-    f = mean(abs(log(gt)-log(predictions/patient.VG)))
-    profile off
-    profile viewer
-    pause
+    f = mean(abs(log(gt)-log(predictions/patient.VG)));
 end
 
 function window = set_window(window_size, t, x0, ymin1, u0, t_end)   
@@ -186,6 +182,15 @@ function dt = convert_to_minutes(duration)
     dt = hours * 60 + minutes + seconds / 60;
 end
 
-function t = next_step(t, increment, patientData)
-    t = t + increment;
+function next_t = next_step(t, patientData)
+    idx_CGM = find(patientData.CGM.time > t);
+    idx_IIR = find(patientData.IIR.time > t);
+    idx_Meal = find(patientData.Meal.time > t);
+
+    next_t = min([min(patientData.CGM.time(idx_CGM)), min(patientData.Meal.time(idx_Meal)), min(patientData.IIR.time(idx_IIR))]);
+    
+    if isempty(next_t)
+        next_t = t + seconds(1);
+    end
+
 end

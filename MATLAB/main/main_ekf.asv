@@ -8,13 +8,12 @@ extra_state_fields = {'insulin_to_infuse','last_IIR','CHO_to_eat','D','lastQsto'
 input_fields = {'CHO', 'IIR'};
 true_input_fields = {'CHO_consumed_rate','IIR_dt'};
 
-use_true_patient = false;
+use_true_patient = true;
 use_tuned_model = true;
 use_true_model = false;
 
 use_known_init_conditions = true;
 do_measurment_update = true;
-compute_mse = false;
 
 simulate_anomalies = false;
 do_chi_sq_test = true;
@@ -31,7 +30,6 @@ if do_plots
 end
 
 %% Load data
-disp('Loading dataset...')
 if ~use_true_patient
     filename = "/Users/giovannicherubini/Desktop/Thesis/Code/data/1minsample/adult#001_6.csv";
     tools = utils(filename, state_fields, extra_state_fields, input_fields, true_input_fields);
@@ -63,8 +61,6 @@ else
         run('param_model.m')
     end
 end
-
-disp('Dataset loaded')
 
 %% Initialization
 Q = eye(numel(state_fields)) * 15;    % TBD
@@ -108,14 +104,13 @@ P = eye(numel(state_fields),numel(state_fields))*2200;
 
 %% Start simulation
 % profile on
-disp('Starting simulation...')
 while t <= t_end
 
     [z_k, new_measurement_detected] = sample_measurement(t, patientData);
     [u_k, new_input_detected] = sample_input(t, patientData);
 
-    if new_input_detected || new_measurement_detected
-    % if new_input_detected
+    % if new_input_detected || new_measurement_detected
+    if new_input_detected
 
         dt = convert_to_minutes(t - last_process_update);
         if plot_complete_history
@@ -175,7 +170,6 @@ end
 % profile off
 % profile viewer
 
-if compute_mse
     if ~use_true_patient
         mse = mean((transpose(patientData.BG.values) - EKF_state_tracking.mean(6, :)/params.VG).^2)
         rmse = mse^(1/2)
@@ -189,7 +183,6 @@ if compute_mse
         mse = mse / i
         rmse = mse^(1/2)
     end
-end
 
 disp("Done");
 
