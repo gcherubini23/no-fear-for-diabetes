@@ -89,7 +89,7 @@ if only_Gpd
     set(gcf, 'Position', get(0, 'Screensize'));
 end
 
-if plot_real_data && use_true_patient
+if plot_true_database && use_true_patient
 
     figure;
 
@@ -125,10 +125,10 @@ if plot_complete_history
 
     figure
 
-    subplot(3,1,1)
+    subplot(2,1,1)
     stem([ekf.t_history], [ekf.u_history.IIR], 'square', 'Color', 'g', 'DisplayName', 'u')
     hold on
-    stem([ekf.t_history], [ekf.v_history.IIR_dt], 'o', 'Color', 'b', 'DisplayName', 'v (IIR dt)');
+    stem([ekf.t_history], [ekf.v_history.IIR_dt], 'x', 'Color', 'b', 'DisplayName', 'v (IIR dt)');
     hold on
     stem([ekf.t_history], [ekf.y_history.insulin_to_infuse], '.', 'Color', 'r', 'DisplayName', 'Insulin to infuse');
     hold off
@@ -137,17 +137,17 @@ if plot_complete_history
     xlim([t_start t_end]);
     legend show
 
-    subplot(3,1,2)
-    stem([ekf.t_history], [ekf.y_history.last_IIR], '.', 'Color', 'r', 'DisplayName', 'last IIR')
-    ylabel('IIR')
-    xlim([t_start t_end]);
-    grid on
-    legend show
+    % subplot(3,1,2)
+    % stem([ekf.t_history], [ekf.y_history.last_IIR], '.', 'Color', 'r', 'DisplayName', 'last IIR')
+    % ylabel('IIR')
+    % xlim([t_start t_end]);
+    % grid on
+    % legend show
 
-    subplot(3,1,3)
+    subplot(2,1,2)
     stem([ekf.t_history], [ekf.u_history.CHO], 'square', 'Color', 'g', 'DisplayName', 'u');
     hold on
-    stem([ekf.t_history], [ekf.v_history.CHO_consumed_rate], 'o', 'Color', 'b', 'DisplayName', 'v (CHO consumed rate)');
+    stem([ekf.t_history], [ekf.v_history.CHO_consumed_rate], 'x', 'Color', 'b', 'DisplayName', 'v (CHO consumed rate)');
     hold on
     stem([ekf.t_history], [ekf.y_history.CHO_to_eat], '.', 'Color', 'r', 'DisplayName', 'CHO to eat');
     hold off

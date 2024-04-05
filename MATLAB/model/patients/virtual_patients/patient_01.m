@@ -109,7 +109,7 @@ classdef patient_01
                 if isprop(obj, fieldName) 
                     obj.(fieldName) = p(i); 
                 else
-                    warning('Property %s does not exist in patient_00.', fieldName);
+                    warning('Property %s does not exist in patient_01.', fieldName);
                 end
             end
 

@@ -8,13 +8,13 @@ extra_state_fields = {'insulin_to_infuse','last_IIR','CHO_to_eat','D','lastQsto'
 input_fields = {'CHO', 'IIR'};
 true_input_fields = {'CHO_consumed_rate','IIR_dt'};
 
-use_true_patient = false;
+use_true_patient = true;
 use_tuned_model = true;
 use_true_model = false;
 
 use_known_init_conditions = true;
-do_measurment_update = true;
-compute_mse = false;
+do_measurment_update = false;
+compute_mse = true;
 
 simulate_anomalies = false;
 do_chi_sq_test = true;
@@ -22,11 +22,11 @@ do_cusum_test = false;
 
 do_plots = true;
 if do_plots
-    plot_real_data = false;
+    plot_true_database = false;
     all_states = true;
     only_Gpd = true;
     plot_anomalies = true;
-    plot_complete_history = true;
+    plot_complete_history = false;
     % show_confidence_interval = false;
 end
 
@@ -68,7 +68,7 @@ disp('Dataset loaded')
 
 %% Initialization
 Q = eye(numel(state_fields)) * 15;    % TBD
-R = 100;  % TBD
+R = 20;  % TBD
 ekf_dt = 1; % [min]
 
 % if simulate_anomalies
@@ -115,11 +115,10 @@ while t <= t_end
     [u_k, new_input_detected] = sample_input(t, patientData);
 
     if new_input_detected || new_measurement_detected
-    % if new_input_detected
 
         dt = convert_to_minutes(t - last_process_update);
         if plot_complete_history
-            [xp_k, Pp_k, y_kminus1, v_kminus1, ekf] = ekf.predict_and_save(x, y, u, P, dt, params, t);
+            [xp_k, Pp_k, y_kminus1, v_kminus1, ekf] = ekf.predict_and_save(x, y, u, P, dt, params, last_process_update);
         else
             [xp_k, Pp_k, y_kminus1, v_kminus1] = ekf.predict(x, y, u, P, dt, params);
         end

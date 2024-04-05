@@ -29,67 +29,64 @@ classdef non_linear_model
 
     methods(Static)        
         function [y_k, v_k] = preprocess(x_k,y_kminus1,u_k,params,dt)
-            % What are the true inputs?
-            if dt == 0
-                y_k = y_kminus1;
-                v_k.CHO_consumed_rate = 0;
-                v_k.IIR_dt = 0;
-            else  
-                % Insulin
-                if y_kminus1.insulin_to_infuse <= 0
-                    IIR_dt = u_k.IIR;
-                else
-                    IIR_dt = y_kminus1.last_IIR;    % assuming I do not inject new insulin if I still have some to inject
-                end
-                
-                insulin_to_infuse = y_kminus1.insulin_to_infuse + u_k.IIR;  % [U] as it is multiplied by 1 min
-               
-                % Check if we have enough insulin to infuse for this time step.
-                if insulin_to_infuse < IIR_dt * dt
-                    % If there isn't enough insulin to infuse, just infuse whatever is left.
-                    IIR_dt = insulin_to_infuse / dt;
-                end
-    
-                new_insulin_to_infuse = max(0, insulin_to_infuse - IIR_dt * dt);
-                epsilon = 1e-5;
-                if new_insulin_to_infuse <= epsilon
-                    new_insulin_to_infuse = 0;
-                end
-                
-                % CHO
-                if (y_kminus1.CHO_to_eat / dt >= params.eat_rate) || (u_k.CHO / dt >= params.eat_rate && y_kminus1.CHO_to_eat == 0)
-                    CHO_consumed_rate = params.eat_rate;
-                elseif (u_k.CHO > 0) && (u_k.CHO / dt < params.eat_rate) && (y_kminus1.CHO_to_eat == 0)
-                    CHO_consumed_rate = u_k.CHO / dt;
-                else
-                    CHO_consumed_rate = y_kminus1.CHO_to_eat / dt;
-                end
-    
-                % Update extra states
-                new_CHO_to_eat = u_k.CHO + y_kminus1.CHO_to_eat - CHO_consumed_rate * dt;
-    
-                if y_kminus1.is_eating
-                    new_D = CHO_consumed_rate * dt + y_kminus1.D;
-                elseif CHO_consumed_rate > 0
-                    new_D = CHO_consumed_rate * dt;
-                else
-                    new_D = y_kminus1.D;
-                end
-    
-                if CHO_consumed_rate > 0 && y_kminus1.is_eating == false     % starts eating -> store last state of Qsto
-                    is_eating = true;
-                    lastQsto = x_k.Qsto1 + x_k.Qsto2;
-                elseif CHO_consumed_rate == 0 && y_kminus1.is_eating == true     % stops eating -> restart updating lastQsto
-                    is_eating = false;
-                    lastQsto = y_kminus1.lastQsto;
-                else
-                    is_eating = y_kminus1.is_eating;
-                    lastQsto = y_kminus1.lastQsto;    
-                end
-    
-                v_k = struct('CHO_consumed_rate',CHO_consumed_rate,'IIR_dt',IIR_dt);
-                y_k = struct('insulin_to_infuse',new_insulin_to_infuse,'last_IIR',IIR_dt,'CHO_to_eat',new_CHO_to_eat,'D',new_D,'lastQsto',lastQsto,'is_eating',is_eating);
+            % What are the true inputs? 
+            % Insulin
+            if y_kminus1.insulin_to_infuse <= 0
+                IIR_dt = u_k.IIR;
+            else
+                IIR_dt = max(u_k.IIR, y_kminus1.last_IIR);    % assuming I do not inject new insulin if I still have some to inject
             end
+            
+            insulin_to_infuse = y_kminus1.insulin_to_infuse + u_k.IIR;  % [U] as it is multiplied by 1 min
+           
+            % Check if we have enough insulin to infuse for this time step.
+            if insulin_to_infuse < IIR_dt * dt && dt ~= 0
+                % If there isn't enough insulin to infuse, just infuse whatever is left.
+                IIR_dt = insulin_to_infuse / dt;
+            end
+
+            new_insulin_to_infuse = max(0, insulin_to_infuse - IIR_dt * dt);
+            epsilon = 1e-5;
+            if new_insulin_to_infuse <= epsilon
+                new_insulin_to_infuse = 0;
+            end
+            
+            % CHO
+            if dt == 0
+                CHO_consumed_rate = 0;
+            elseif (y_kminus1.CHO_to_eat / dt >= params.eat_rate) || (u_k.CHO / dt >= params.eat_rate && y_kminus1.CHO_to_eat == 0)
+                CHO_consumed_rate = params.eat_rate;
+            elseif (u_k.CHO > 0) && (u_k.CHO / dt < params.eat_rate) && (y_kminus1.CHO_to_eat == 0)
+                CHO_consumed_rate = u_k.CHO / dt;
+            else
+                CHO_consumed_rate = y_kminus1.CHO_to_eat / dt;
+            end
+
+            % Update extra states
+            new_CHO_to_eat = u_k.CHO + y_kminus1.CHO_to_eat - CHO_consumed_rate * dt;
+
+            if y_kminus1.is_eating
+                new_D = CHO_consumed_rate * dt + y_kminus1.D;
+            elseif CHO_consumed_rate > 0
+                new_D = CHO_consumed_rate * dt;
+            else
+                new_D = y_kminus1.D;
+            end
+
+            if CHO_consumed_rate > 0 && y_kminus1.is_eating == false     % starts eating -> store last state of Qsto
+                is_eating = true;
+                lastQsto = x_k.Qsto1 + x_k.Qsto2;
+            elseif CHO_consumed_rate == 0 && y_kminus1.is_eating == true     % stops eating -> restart updating lastQsto
+                is_eating = false;
+                lastQsto = y_kminus1.lastQsto;
+            else
+                is_eating = y_kminus1.is_eating;
+                lastQsto = y_kminus1.lastQsto;    
+            end
+
+            v_k = struct('CHO_consumed_rate',CHO_consumed_rate,'IIR_dt',IIR_dt);
+            y_k = struct('insulin_to_infuse',new_insulin_to_infuse,'last_IIR',IIR_dt,'CHO_to_eat',new_CHO_to_eat,'D',new_D,'lastQsto',lastQsto,'is_eating',is_eating);
+ 
         end
         
         function [dQsto1_dt, dQsto2_dt, dQgut_dt] = gastro_intestinal_tract(x,y,v,params) 

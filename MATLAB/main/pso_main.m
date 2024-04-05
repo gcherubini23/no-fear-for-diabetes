@@ -11,7 +11,7 @@ params_to_estimate = {'kp2','k1','k2','kp1','ki','ke1','kmax','kmin','kabs','kp3
 nvars = length(params_to_estimate);
 ub = [0.02,   0.5,    0.5,    5,   0.01,   0.001,  0.1,  0.01,   0.1,  0.1,    0.1,   160];
 %     kp2,    k1,     k2,     kp1, ki,     ke1,    kmax, kmin,   kabs, kp3,    Vmx,   Gb
-lb = [0.0001, 0.0001, 0.0001, 2,   0.0040, 0.0001, 0.01, 0.0001, 0.01, 0.0001, 0.001, 90];
+lb = [0.0001, 0.0001, 0.0001, 2,   0.0040, 0.0001, 0.01, 0.0001, 0.01, 0.0001, 0.001, 50];
 
 
 % params_to_estimate = {'kp2','k1','k2','kp1','ki','ke1','kmax','kmin','kabs','kp3','Vmx'};
@@ -26,6 +26,7 @@ else
     use_CGM_to_tune = false;
 end
 
+disp('Loading dataset...')
 if ~use_true_patient
     filename = "/Users/giovannicherubini/Desktop/Thesis/Code/data/1minsample/adult#001_5.csv";
     tools = utils(filename, state_fields, extra_state_fields, input_fields, true_input_fields);
@@ -47,6 +48,7 @@ else
     dailyBasal = 18;
     patient = patient_11(dailyBasal);
 end
+disp('Dataset loaded...')
 
 t_start = min([min(patientData.CGM.time), min(patientData.Meal.time), min(patientData.IIR.time)]);
 t_end = max([max(patientData.CGM.time), max(patientData.Meal.time), max(patientData.IIR.time)]);
@@ -84,7 +86,7 @@ while t < t_end
     end
     options.Display = 'iter';
     options.MaxIterations = 200;
-    options.FunctionTolerance = 0.01;
+    options.FunctionTolerance = 0.001;
     [final_p,fval,~,~,points] = particleswarm(objective_pso, nvars, lb, ub, options);
 
     % [final_p,fval] = particleswarm(objective_pso, nvars, lb, ub, options);
@@ -109,17 +111,17 @@ function f = objective(p, patient, ekf, patientData, window, params_to_estimate,
     y = window.ymin1;
     u = window.u0;
     last_process_update = window.t_start;
-    % P = eye(numel(ekf.state_fields),numel(ekf.state_fields))*2200;
+    P = eye(numel(ekf.state_fields),numel(ekf.state_fields))*2200;
     measurements = [];
     while t <= window.t_end
         [uk, new_input_detected] = sample_input(t, patientData);
         [zk, new_measurement_detected] = sample_measurement(t, patientData);
         if new_input_detected || new_measurement_detected
             dt = convert_to_minutes(t - last_process_update);
-            % [xk, Pk, ykmin1, ~] = ekf.predict(x, y, u, P, dt, patient);
-            [xk, ykmin1, ~] = ekf.tools.euler_solve(ekf.model,patient,x,y,u,dt);
+            [xk, Pk, ykmin1, ~] = ekf.predict(x, y, u, P, dt, patient);
+            % [xk, ykmin1, ~] = ekf.tools.euler_solve(ekf.model,patient,x,y,u,dt);
             x = xk;
-            % P = Pk;
+            P = Pk;
             y = ykmin1;
             u = uk;
             if new_measurement_detected

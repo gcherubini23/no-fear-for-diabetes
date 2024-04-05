@@ -59,7 +59,7 @@ classdef ekf
             u = u_k;
             P = P_k;
             v.CHO_consumed_rate = 0;
-            v.IIR_dt = 0;
+            v.IIR_dt = y_kminus1.last_IIR;
 
             while t < horizon
                 step_dt = min(obj.dt, horizon - t);             
@@ -89,7 +89,7 @@ classdef ekf
             u = u_k;
             P = P_k;
             v.CHO_consumed_rate = 0;
-            v.IIR_dt = 0;
+            v.IIR_dt = y_kminus1.last_IIR;
 
             time = t0;
             while t < horizon
@@ -106,11 +106,6 @@ classdef ekf
                     obj.y_history = y;
                     obj.t_history = t0;
                 else
-                    % if obj.t_history(end,:) == time
-                    %     disp('Sono ugualiiiiiii')
-                    %     time = time
-                    %     q = 9;
-                    % end
                     obj.u_history(end+1) = u;
                     obj.v_history(end+1) = v;
                     obj.y_history(end+1) = y;
