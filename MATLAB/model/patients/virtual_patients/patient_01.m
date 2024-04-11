@@ -25,6 +25,7 @@ classdef patient_01
         % Insulin Kinetics
         VI = 0.054906;
         HEb = 0.6;
+        CL = 1.2642;
         m1 = 0.15446;
         m2 = 0.225;
         m30;
@@ -73,6 +74,8 @@ classdef patient_01
             % obj.basal = obj.u2ss * obj.BW / 6000;
 
             obj.m30 = obj.m1 * obj.HEb / (1 - obj.HEb);
+            obj.m2 = 3/5 * obj.CL / (obj.HEb * obj.VI * obj.BW);
+            obj.m4 = 2/5 * obj.CL / (obj.VI * obj.BW);
             obj.Ipb = obj.u2ss / (obj.m2 + obj.m4 - obj.m1 * obj.m2 / (obj.m1 + obj.m30));  % basal insulin in plasma
             obj.Ilb = obj.m2 / (obj.m1 + obj.m30) * obj.Ipb;
             obj.Ib = obj.Ipb / obj.VI;
@@ -89,6 +92,8 @@ classdef patient_01
         function obj = recompile(obj)
 
             obj.m30 = obj.m1 * obj.HEb / (1 - obj.HEb);
+            obj.m2 = 3/5 * obj.CL / (obj.HEb * obj.VI * obj.BW);
+            obj.m4 = 2/5 * obj.CL / (obj.VI * obj.BW);
             obj.Ipb = obj.u2ss / (obj.m2 + obj.m4 - obj.m1 * obj.m2 / (obj.m1 + obj.m30));  % basal insulin in plasma
             obj.Ilb = obj.m2 / (obj.m1 + obj.m30) * obj.Ipb;
             obj.Ib = obj.Ipb / obj.VI;

@@ -70,7 +70,7 @@ classdef ekf
                 v = v_new;
 
                 u.CHO = 0;
-                u.IIR = 0;  % to consider using basal rate
+                u.IIR = 0;
                 t = t + step_dt;
 
             end
@@ -90,32 +90,35 @@ classdef ekf
             P = P_k;
             v.CHO_consumed_rate = 0;
             v.IIR_dt = y_kminus1.last_IIR;
-
+            
             time = t0;
+
             while t < horizon
+
                 step_dt = min(obj.dt, horizon - t);             
                 [x_new, P_new, y_new, v_new] = obj.process_update(x,y,u,P,step_dt,params);
+               
                 x = x_new;
                 P = P_new;
                 y = y_new;
                 v = v_new;
 
-                if isempty(obj.u_history)
+                if isempty(obj.y_history)
                     obj.u_history = u;
-                    obj.v_history = v;
                     obj.y_history = y;
-                    obj.t_history = t0;
+                    obj.v_history = v;
+                    obj.t_history = time;
                 else
                     obj.u_history(end+1) = u;
-                    obj.v_history(end+1) = v;
                     obj.y_history(end+1) = y;
-                    obj.t_history(end+1,:) = time;
+                    obj.v_history(end+1) = v;
+                    obj.t_history(end+1) = time;
                 end
 
-                u.CHO = 0;
-                u.IIR = 0;
                 t = t + step_dt;
                 time = time + minutes(step_dt);
+                u.CHO = 0;
+                u.IIR = 0;
 
             end
    

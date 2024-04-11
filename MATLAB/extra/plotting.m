@@ -71,54 +71,35 @@ if only_Gpd
 
     figure
 
-    plot(EKF_state_tracking.time, EKF_state_tracking.mean(6,:)/params.VG, 'm-', 'DisplayName', 'EKF');
+    plot(EKF_state_tracking.time, EKF_state_tracking.mean(6,:)/params.VG, 'm-', 'DisplayName', 'EKF', 'LineWidth', 1);
     hold on
     if ~use_true_patient
-        plot(tools.Time, tools.BGs, 'b-', 'DisplayName', 'Ground truth');
+        plot(tools.Time, tools.BGs, 'b-', 'DisplayName', 'Ground truth', 'LineWidth', 1);
         hold on
     end
     plot(patientData.CGM.time, patientData.CGM.values, 'o', 'DisplayName', 'CGM', 'Color', 'cyan', 'MarkerSize', 4)
     hold on
+
+    if show_confidence_interval
+        gamma = 1.96;
+        sigma = sqrt(EKF_state_tracking.variance);
+        upper_bound = (EKF_state_tracking.mean(6,:) + gamma * sigma)/params.VG;
+        lower_bound = (EKF_state_tracking.mean(6,:) - gamma * sigma)/params.VG;
+        x = transpose(EKF_state_tracking.time);
+        x2 = [x, fliplr(x)];
+        inBetween = [lower_bound, fliplr(upper_bound)];
+        fill(x2, inBetween, 'b', 'FaceAlpha', 0.1, 'EdgeColor', 'none', 'FaceColor','m','DisplayName','95% CI');
+        hold on
+    end
     
-    if plot_anomalies        
+    if plot_anomalies
         plot(anomaly_detector.time, anomaly_detector.anomalies, 'o','DisplayName', 'Anomalies', 'Color', [1 0 0], 'MarkerSize', 4)
         hold on 
     end
     
     legend show;
+    xlim([t_start t_end]);
     set(gcf, 'Position', get(0, 'Screensize'));
-end
-
-if plot_true_database && use_true_patient
-
-    figure;
-
-    subplot(3,1,1)
-    plot(patientData.CGM.time, patientData.CGM.values, '-o', 'DisplayName', 'CGM', 'Color', 'cyan', 'MarkerSize', 4);
-    xlabel('Time');
-    xlim([t_start t_end]);
-    legend show
-    grid on
-
-    subplot(3,1,2)
-    % stem(patientData.Insulin.time, patientData.Insulin.values, 'o', 'Color', 'r', 'DisplayName', 'Insulin');
-    stem(patientData.IIR.time, patientData.IIR.values, 'o', 'Color', 'r', 'DisplayName', 'Insulin');
-    hold on
-    stem(patientData.Meal.time, patientData.Meal.values, 'square', 'Color', 'g', 'DisplayName', 'Meal');
-    xlabel('Time');
-    xlim([t_start t_end]);
-    legend show
-    grid on
-
-    subplot(3,1,3)
-    plot(patientData.System.time, patientData.System.DiAsState, '.', 'Color', 'm', 'DisplayName', 'Operational mode');
-    xlabel('Time');
-    xlim([t_start t_end]);
-    legend show
-    grid on
-    
-    set(gcf, 'Position', get(0, 'Screensize'));
-    
 end
 
 if plot_complete_history
@@ -137,24 +118,19 @@ if plot_complete_history
     xlim([t_start t_end]);
     legend show
 
-    % subplot(3,1,2)
-    % stem([ekf.t_history], [ekf.y_history.last_IIR], '.', 'Color', 'r', 'DisplayName', 'last IIR')
-    % ylabel('IIR')
-    % xlim([t_start t_end]);
-    % grid on
-    % legend show
-
     subplot(2,1,2)
     stem([ekf.t_history], [ekf.u_history.CHO], 'square', 'Color', 'g', 'DisplayName', 'u');
     hold on
     stem([ekf.t_history], [ekf.v_history.CHO_consumed_rate], 'x', 'Color', 'b', 'DisplayName', 'v (CHO consumed rate)');
     hold on
     stem([ekf.t_history], [ekf.y_history.CHO_to_eat], '.', 'Color', 'r', 'DisplayName', 'CHO to eat');
-    hold off
+    hold on
+    plot([ekf.t_history], [ekf.y_history.D], 'Color', 'm', 'DisplayName', 'CHO eaten');
     grid on
     ylabel('CHO')
     xlim([t_start t_end]);
     legend show
+
 
     set(gcf, 'Position', get(0, 'Screensize'));
 

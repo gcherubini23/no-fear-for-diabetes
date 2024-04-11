@@ -86,7 +86,7 @@ classdef non_linear_model
 
             v_k = struct('CHO_consumed_rate',CHO_consumed_rate,'IIR_dt',IIR_dt);
             y_k = struct('insulin_to_infuse',new_insulin_to_infuse,'last_IIR',IIR_dt,'CHO_to_eat',new_CHO_to_eat,'D',new_D,'lastQsto',lastQsto,'is_eating',is_eating);
- 
+
         end
         
         function [dQsto1_dt, dQsto2_dt, dQgut_dt] = gastro_intestinal_tract(x,y,v,params) 
@@ -130,22 +130,12 @@ classdef non_linear_model
             Et = max(0, params.ke1 * (x.Gp - params.ke2));
         
             % Glucose kinetics
-            dGp_dt = EGPt + Rat - Uiit - Et - params.k1 * x.Gp + params.k2 * x.Gt;
+            dGp_dt = EGPt + Rat - Uiit - Et - params.k1 * x.Gp + params.k2 * x.Gt; 
            
-            if x.Gp < 0 || abs(dGp_dt) <= 1e-10
-                dGp_dt = 0;
-            end
-            
             dGt_dt = -Uidt + params.k1 * x.Gp - params.k2 * x.Gt;
-            if x.Gt < 0
-                dGt_dt = 0;
-            end
         
             % Subcutaneous glucose
             dGpd_dt = -1/params.Td * x.Gpd + 1/params.Td * x.Gp;
-            if x.Gpd < 0
-                dGpd_dt = 0;
-            end
 
         end
         
@@ -153,18 +143,18 @@ classdef non_linear_model
             insulin = v.IIR_dt * 6000 / params.BW;
 
             % Liver Insulin kinetics
-            dIl_dt = (-(params.m1 + params.m30) * x.Il + params.m2 * x.Ip) * (x.Il >= 0);
+            dIl_dt = (-(params.m1 + params.m30) * x.Il + params.m2 * x.Ip);
         
             % Subcutaneous insulin kinetics
-            dIsc1_dt = (insulin - (params.kd + params.ka1) * x.Isc1) * (x.Isc1 >= 0);
+            dIsc1_dt = (insulin - (params.kd + params.ka1) * x.Isc1);
 
-            dIsc2_dt = (params.kd * x.Isc1 - params.ka2 * x.Isc2) * (x.Isc2 >= 0);
+            dIsc2_dt = (params.kd * x.Isc1 - params.ka2 * x.Isc2);
             
             % Appearance rate of insulin in plasma
             Rit = params.ka1 * x.Isc1 + params.ka2 * x.Isc2;
             
             % Plasma insulin kinetics (infusion)
-            dIp_dt = (-(params.m2 + params.m4) * x.Ip + params.m1 * x.Il + Rit) * (x.Ip >= 0);
+            dIp_dt = (-(params.m2 + params.m4) * x.Ip + params.m1 * x.Il + Rit);
             if abs(dIp_dt) < 1e-10
                 dIp_dt = 0;
             end
@@ -172,7 +162,7 @@ classdef non_linear_model
             It = x.Ip / params.VI;
         
             % Insulin
-            dX_dt = params.p2U * (-x.X + It - params.Ib);          
+            dX_dt = params.p2U * (-x.X + It - params.Ib);  
             
             dI1_dt = params.ki * (It - x.I1);
 

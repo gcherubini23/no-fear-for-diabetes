@@ -118,6 +118,7 @@ classdef utils
             vec_x = obj.convert_to_vector(x);
             vec_dx_dt = obj.convert_to_vector(dx_dt);
             vec_x_next = vec_x + dt * vec_dx_dt;
+            vec_x_next = vec_x_next .* (vec_x_next >= 0);
             x_next = obj.convert_to_struct(vec_x_next);
         end
 

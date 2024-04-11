@@ -13,6 +13,11 @@ nvars = 12;
 ub = [0.5,0.5,0.5,6,0.01,0.001,0.1,0.01,0.1,0.1,0.1,160];
 lb = [0.0001,0.0001,0.0001,1,0.0001,0.0001,0.001,0.0001,0.001,0.0001,0.001,50];
 
+% params_to_estimate = {'VG','m1','CL','Vmx','k1','Km0','k2','kp2','kmax','kmin','kabs','ki'};
+% nvars = length(params_to_estimate);
+% ub = [2,   0.4,   1.5,    0.1,   0.1,   300, 0.2, 0.01, 0.1,  0.01,   0.3, 0.01];
+% lb = [1.5, 0.1,   0.5,    0.01,  0.01,  200, 0.05, 0.0001, 0.001, 0.0001, 0.05, 0.0040];
+
 tools = utils(filename, state_fields, extra_state_fields, input_fields, true_input_fields);
 model = non_linear_model(tools);
 basal = tools.IIRs(1);
@@ -36,7 +41,7 @@ while ~stop_simulation(tools, cgm_dt, t)
     objective_pso = @(p) objective_2(p, patient, model, window, tools, params_to_estimate);
     
     % options.ObjectiveLimit = 3.5;
-    options.MaxTime = 1800;
+    % options.MaxTime = 1800;
     if t > 0
         options.InitialPoints = points.X;
     end
@@ -120,8 +125,9 @@ function f = objective_2(p, patient, model, window, tools, params_to_estimate)
     t = window.t_start;
     dt = window.dt;
     predictions = [];
-    x = window.x0;
-    y = window.ymin1;
+    % x = window.x0;
+    % y = window.ymin1;
+    [x, y] = tools.init_conditions(patient);
     while t <= window.t_end
         u_k.CHO = tools.CHOs(t);
         u_k.IIR = tools.IIRs(t);

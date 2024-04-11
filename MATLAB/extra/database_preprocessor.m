@@ -18,13 +18,6 @@ for filename = filenames
 
 end
 
-%% Select days and patient
-patient_ID = 11;
-date = '14-Feb-2013 06:30:00';
-start_day = datetime(date,'InputFormat', 'dd-MMM-yyyy HH:mm:ss');
-
-days_to_examine = 2;
-% days_to_examine = 'all';
 
 idx = extract_idx(databaseCGM, patient_ID, start_day, days_to_examine);
 patientData.CGM.time = databaseCGM.Time(idx);
@@ -41,6 +34,42 @@ patientData.Meal.values = databaseMeal.MealSize(idx);
 idx = extract_idx(databaseSystem, patient_ID, start_day, days_to_examine);
 patientData.System.time = databaseSystem.Time(idx);
 patientData.System.DiAsState = databaseSystem.DiAsState(idx);
+
+
+if plot_true_database
+
+    t_start = min([min(patientData.CGM.time), min(patientData.Meal.time), min(patientData.IIR.time)]);
+    t_end = max([max(patientData.CGM.time), max(patientData.Meal.time), max(patientData.IIR.time)]);
+
+    figure;
+
+    subplot(3,1,1)
+    plot(patientData.CGM.time, patientData.CGM.values, '-o', 'DisplayName', 'CGM', 'Color', 'cyan', 'MarkerSize', 4);
+    xlabel('Time');
+    xlim([t_start t_end]);
+    legend show
+    grid on
+
+    subplot(3,1,2)
+    % stem(patientData.Insulin.time, patientData.Insulin.values, 'o', 'Color', 'r', 'DisplayName', 'Insulin');
+    stem(patientData.IIR.time, patientData.IIR.values, 'o', 'Color', 'r', 'DisplayName', 'Insulin');
+    hold on
+    stem(patientData.Meal.time, patientData.Meal.values, 'square', 'Color', 'g', 'DisplayName', 'Meal');
+    xlabel('Time');
+    xlim([t_start t_end]);
+    legend show
+    grid on
+
+    subplot(3,1,3)
+    plot(patientData.System.time, patientData.System.DiAsState, '.', 'Color', 'm', 'DisplayName', 'Operational mode');
+    xlabel('Time');
+    xlim([t_start t_end]);
+    legend show
+    grid on
+    
+    set(gcf, 'Position', get(0, 'Screensize'));
+    
+end
 
 function idx = extract_idx(database, patient_ID, start_day, days_to_examine)
     if ~strcmp(string(days_to_examine), 'all')

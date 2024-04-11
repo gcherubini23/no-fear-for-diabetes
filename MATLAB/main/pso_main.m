@@ -6,25 +6,22 @@ state_fields = {'Qsto1','Qsto2','Qgut','Gp','Gt','Gpd','Il','Ip','I1','Id','X','
 extra_state_fields = {'insulin_to_infuse','last_IIR','CHO_to_eat','D','lastQsto','is_eating'}; 
 input_fields = {'CHO', 'IIR'};
 true_input_fields = {'CHO_consumed_rate','IIR_dt'};
-
-params_to_estimate = {'kp2','k1','k2','kp1','ki','ke1','kmax','kmin','kabs','kp3','Vmx','Gb'};
-nvars = length(params_to_estimate);
-ub = [0.02,   0.5,    0.5,    5,   0.01,   0.001,  0.1,  0.01,   0.1,  0.1,    0.1,   160];
-%     kp2,    k1,     k2,     kp1, ki,     ke1,    kmax, kmin,   kabs, kp3,    Vmx,   Gb
-lb = [0.0001, 0.0001, 0.0001, 2,   0.0040, 0.0001, 0.01, 0.0001, 0.01, 0.0001, 0.001, 50];
-
-
+% 
 % params_to_estimate = {'kp2','k1','k2','kp1','ki','ke1','kmax','kmin','kabs','kp3','Vmx'};
-% nvars = 11;
-% ub = [0.5,0.5,0.5,6,0.01,0.001,0.1,0.01,0.1,0.1,0.1];
-% lb = [0.0001,0.0001,0.0001,1,0.0001,0.0001,0.001,0.0001,0.001,0.0001,0.001];
+% nvars = length(params_to_estimate);
+% ub = [0.02,   0.5,    0.5,    5,   0.01,   0.001,  0.1,  0.01,   0.3,  0.1,    0.1];
+% %     kp2,    k1,     k2,     kp1, ki,     ke1,    kmax, kmin,   kabs, kp3,    Vmx  
+% lb = [0.0001, 0.0001, 0.0001, 2,   0.0040, 0.0001, 0.01, 0.0001, 0.01, 0.01, 0.001];
+% 
+params_to_estimate = {'VG','m1','CL','Vmx','k1','Km0','k2','kp2','kmax','kmin','kabs','ki'};
+nvars = length(params_to_estimate);
+ub = [2,   0.4,   1.5,    0.1,   0.1,   300, 0.2, 0.01, 0.1,  0.01,   0.3, 0.01] * 2;
+lb = [1.5, 0.1,   0.5,    0.01,  0.01,  200, 0.05, 0.0001, 0.001, 0.0001, 0.05, 0.0040] / 2;
 
-use_true_patient = true;
-if use_true_patient
-    use_CGM_to_tune = true;
-else
-    use_CGM_to_tune = false;
-end
+
+use_true_patient = false;
+use_CGM_to_tune = true;
+
 
 disp('Loading dataset...')
 if ~use_true_patient
@@ -42,9 +39,10 @@ if ~use_true_patient
     patient = patient_00(basal);
 else
     filename = "none";
+    plot_true_database = false;
     tools = utils(filename, state_fields, extra_state_fields, input_fields, true_input_fields);
     run('database_preprocessor.m')
-    basal = 0;
+    % basal = 0;
     dailyBasal = 18;
     patient = patient_11(dailyBasal);
 end
@@ -58,8 +56,8 @@ model = non_linear_model(tools);
 window_size = experiment_total_time;
 
 %%
-Q = eye(numel(state_fields)) * 15;    % TBD
-R = 100;  % TBD
+Q = diag([0,0,0,100,100,100,0,0,0,0,0,0,0]);    % TBD
+R = 10;  % TBD
 ekf_dt = 1; % [min]
 
 lin_model = linearized_model(tools);
@@ -86,7 +84,7 @@ while t < t_end
     end
     options.Display = 'iter';
     options.MaxIterations = 200;
-    options.FunctionTolerance = 0.001;
+    options.FunctionTolerance = 0.0001;
     [final_p,fval,~,~,points] = particleswarm(objective_pso, nvars, lb, ub, options);
 
     % [final_p,fval] = particleswarm(objective_pso, nvars, lb, ub, options);
@@ -107,11 +105,13 @@ function f = objective(p, patient, ekf, patientData, window, params_to_estimate,
     patient = patient.set_params(params_to_estimate,p);
     t = window.t_start;
     predictions = [];
-    x = window.x0;
-    y = window.ymin1;
+    % x = window.x0;
+    % y = window.ymin1;
+    [x, y] = ekf.tools.init_conditions(patient);
     u = window.u0;
+
     last_process_update = window.t_start;
-    P = eye(numel(ekf.state_fields),numel(ekf.state_fields))*2200;
+    P = ekf.Q * 3;
     measurements = [];
     while t <= window.t_end
         [uk, new_input_detected] = sample_input(t, patientData);
@@ -119,7 +119,6 @@ function f = objective(p, patient, ekf, patientData, window, params_to_estimate,
         if new_input_detected || new_measurement_detected
             dt = convert_to_minutes(t - last_process_update);
             [xk, Pk, ykmin1, ~] = ekf.predict(x, y, u, P, dt, patient);
-            % [xk, ykmin1, ~] = ekf.tools.euler_solve(ekf.model,patient,x,y,u,dt);
             x = xk;
             P = Pk;
             y = ykmin1;
@@ -142,6 +141,8 @@ function f = objective(p, patient, ekf, patientData, window, params_to_estimate,
     end
     % f = mean((predictions/patient.VG - gt).^2);
     f = mean(abs(log(gt)-log(predictions/patient.VG)));
+    % f = mean(abs((predictions/patient.VG - gt)));
+
 end
 
 function window = set_window(window_size, t, x0, ymin1, u0, t_end)   
