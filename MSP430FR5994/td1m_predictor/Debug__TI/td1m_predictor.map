@@ -1,7 +1,7 @@
 ******************************************************************************
                   MSP430 Linker Unix v21.6.1                   
 ******************************************************************************
->> Linked Wed Jan 31 12:50:24 2024
+>> Linked Mon Apr 15 17:24:27 2024
 
 OUTPUT FILE NAME:   <td1m_predictor.out>
 ENTRY POINT SYMBOL: "_c_int00_noargs_mpu"  address: 00009d92
@@ -475,7 +475,7 @@ MODULE SUMMARY
 
        Module                       code    ro data   rw data
        ------                       ----    -------   -------
-    ./src/
+    ./src/IntermittentLearn/
        actions_NN.obj               4370    924       56514  
        intermittent_learning.obj    2496    16        526    
        memory_util.obj              222     0         0      

@@ -43,12 +43,12 @@ classdef non_linear_model
             if insulin_to_infuse < IIR_dt * dt && dt ~= 0
                 % If there isn't enough insulin to infuse, just infuse whatever is left.
                 IIR_dt = insulin_to_infuse / dt;
-            end
-
-            new_insulin_to_infuse = max(0, insulin_to_infuse - IIR_dt * dt);
-            epsilon = 1e-5;
-            if new_insulin_to_infuse <= epsilon
-                new_insulin_to_infuse = 0;
+                insulin_to_infuse = 0;
+            else
+                insulin_to_infuse = insulin_to_infuse - IIR_dt * dt;
+                if insulin_to_infuse < 1e-5
+                    insulin_to_infuse = 0;
+                end
             end
             
             % CHO
@@ -85,7 +85,7 @@ classdef non_linear_model
             end
 
             v_k = struct('CHO_consumed_rate',CHO_consumed_rate,'IIR_dt',IIR_dt);
-            y_k = struct('insulin_to_infuse',new_insulin_to_infuse,'last_IIR',IIR_dt,'CHO_to_eat',new_CHO_to_eat,'D',new_D,'lastQsto',lastQsto,'is_eating',is_eating);
+            y_k = struct('insulin_to_infuse',insulin_to_infuse,'last_IIR',IIR_dt,'CHO_to_eat',new_CHO_to_eat,'D',new_D,'lastQsto',lastQsto,'is_eating',is_eating);
 
         end
         

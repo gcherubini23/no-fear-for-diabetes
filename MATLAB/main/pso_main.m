@@ -13,13 +13,15 @@ true_input_fields = {'CHO_consumed_rate','IIR_dt'};
 % %     kp2,    k1,     k2,     kp1, ki,     ke1,    kmax, kmin,   kabs, kp3,    Vmx  
 % lb = [0.0001, 0.0001, 0.0001, 2,   0.0040, 0.0001, 0.01, 0.0001, 0.01, 0.01, 0.001];
 % 
-params_to_estimate = {'VG','m1','CL','Vmx','k1','Km0','k2','kp2','kmax','kmin','kabs','ki'};
+params_to_estimate = {'VG','m1','CL','Vmx','k1','Km0','k2','kp2','kmax','kmin','kabs','ki','u2ss'};
 nvars = length(params_to_estimate);
-ub = [2,   0.4,   1.5,    0.1,   0.1,   300, 0.2, 0.01, 0.1,  0.01,   0.3, 0.01] * 2;
-lb = [1.5, 0.1,   0.5,    0.01,  0.01,  200, 0.05, 0.0001, 0.001, 0.0001, 0.05, 0.0040] / 2;
+ub = [2,   0.4,   1.5,    0.1,   0.1,   300, 0.2, 0.01, 0.1,  0.01,   0.3, 0.01, 10] * 1;
+lb = [1.5, 0.1,   0.5,    0.01,  0.01,  200, 0.05, 0.0001, 0.001, 0.0001, 0.05, 0.0040, 0.1] / 1;
 
 
-use_true_patient = false;
+use_true_patient = true;
+use_anderson = true;
+use_tmoore = false;
 use_CGM_to_tune = true;
 
 
@@ -38,12 +40,35 @@ if ~use_true_patient
     basal = tools.IIRs(1);
     patient = patient_00(basal);
 else
+    if use_anderson
+        patient_ID = 11;
+        date = '11-Feb-2013 06:30:00';
+        % date = '26-Jan-2013 06:30:00';
+        % date = '28-Jan-2013 06:30:00';
+
+        days_to_examine = 2;
+        % days_to_examine = 30;
+        % days_to_examine = 'all';
+    end
+
+    if use_tmoore
+        patient_ID = -1;
+        date = '20-Jan-2022 00:00:00';
+
+        days_to_examine = 2;
+        % days_to_examine = 30;
+        % days_to_examine = 'all';
+
+    end
+
+    start_day = datetime(date,'InputFormat', 'dd-MMM-yyyy HH:mm:ss');
+
     filename = "none";
     plot_true_database = false;
     tools = utils(filename, state_fields, extra_state_fields, input_fields, true_input_fields);
     run('database_preprocessor.m')
     % basal = 0;
-    dailyBasal = 18;
+    dailyBasal = 10;
     patient = patient_11(dailyBasal);
 end
 disp('Dataset loaded...')

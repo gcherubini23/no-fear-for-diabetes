@@ -10,7 +10,7 @@ classdef patient_11
         % u2ss;      
         
         % To be measured at basal state
-        Gb = 121.56;
+        Gb = 101.56;
         
         % Sensor features
         Td = 10; % glucose sensor delay

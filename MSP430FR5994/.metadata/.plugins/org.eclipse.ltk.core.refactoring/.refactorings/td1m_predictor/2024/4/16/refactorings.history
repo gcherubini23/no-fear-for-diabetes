@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">&#x0A;<refactoring comment="Rename resource &apos;td1m_predictor/src/NoFearForDiabetes/ekf&apos; to &apos;ekf.c&apos;" description="Rename resource &apos;ekf&apos;" flags="7" id="org.eclipse.ltk.core.refactoring.rename.resource" input="src/NoFearForDiabetes/ekf" name="ekf.c" stamp="1713190502547" updateReferences="true"/>&#x0A;&#x0A;</session>

@@ -112,6 +112,6 @@ PDE_DEPS__QUOTED :=
 # Every subdirectory with source files must be described here
 SUBDIRS := \
 . \
-src \
+src/IntermittentLearn \
 src/driverlib/MSP430FR5xx_6xx \
 

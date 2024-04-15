@@ -9,26 +9,44 @@ input_fields = {'CHO', 'IIR'};
 true_input_fields = {'CHO_consumed_rate','IIR_dt'};
 
 use_true_patient = false;
-use_tuned_model = true;
-use_true_model = false;
+use_tuned_model = false;
+use_true_model = true;
 
 if use_true_patient
-    patient_ID = 11;
-    % date = '11-Feb-2013 06:30:00';
-    date = '26-Jan-2013 06:30:00';
-    % date = '28-Jan-2013 06:30:00';
+    use_anderson = false;
+    use_tmoore = true;
+    if use_anderson
+        patient_ID = 11;
+        dailyBasal = 18;
+        date = '11-Feb-2013 06:30:00';
+        % date = '26-Jan-2013 06:30:00';
+        % date = '28-Jan-2013 06:30:00';
+
+        days_to_examine = 2;
+        % days_to_examine = 30;
+        % days_to_examine = 'all';
+    end
+
+    if use_tmoore
+        patient_ID = -1;
+        dailyBasal = 10;
+        date = '20-Jan-2022 00:00:00';
+
+        days_to_examine = 2;
+        % days_to_examine = 30;
+        % days_to_examine = 'all';
+
+    end
+
     start_day = datetime(date,'InputFormat', 'dd-MMM-yyyy HH:mm:ss');
-    days_to_examine = 30;
-    % days_to_examine = 30;
-    % days_to_examine = 'all';
 end
 
 use_known_init_conditions = true;
-do_measurment_update = true;
+do_measurment_update = false;
 compute_mse = true;
 
 simulate_anomalies = false;
-do_chi_sq_test = true;
+do_chi_sq_test = false;
 do_cusum_test = false;
 
 do_plots = true;
@@ -37,7 +55,7 @@ if do_plots
     all_states = true;
     only_Gpd = true;
     plot_anomalies = true;
-    plot_complete_history = false;
+    plot_complete_history = true;
     show_confidence_interval = true;
 end
 
@@ -72,7 +90,6 @@ if ~use_true_patient
     end
 else
     basal = 0;
-    dailyBasal = 18;
     params = patient_11(dailyBasal);
     % params = patient_11b(dailyBasal);
 end
@@ -87,9 +104,8 @@ end
 
 high_uncertainty = 25;
 Q = diag([10,10,10,high_uncertainty,high_uncertainty,high_uncertainty,0,0,0,0,0,0,0]);    % TBD
-% Q = eye(length(state_fields))*high_uncertainty;
 R = 160;  % TBD
-ekf_dt = 1; % [min]
+ekf_dt = 0.5; % [min]
 
 % if simulate_anomalies
 %     run('error_gen.m')

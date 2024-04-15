@@ -287,6 +287,9 @@ SECTIONS
     SYSNMI       : { * ( .int54 ) } > INT54 type = VECT_INIT
     .reset       : {}               > RESET  /* MSP430 reset vector         */
 
+
+    .ramfunc : {} load=FRAM, run=RAM
+
 }
 /****************************************************************************/
 /* MPU/IPE SPECIFIC MEMORY SEGMENT DEFINITONS                               */
@@ -378,5 +381,6 @@ SECTIONS
 /****************************************************************************/
 
 -l msp430fr5994.cmd
+
 
 
