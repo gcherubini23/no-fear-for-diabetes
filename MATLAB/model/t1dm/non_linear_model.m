@@ -155,7 +155,7 @@ classdef non_linear_model
             
             % Plasma insulin kinetics (infusion)
             dIp_dt = (-(params.m2 + params.m4) * x.Ip + params.m1 * x.Il + Rit);
-            if abs(dIp_dt) < 1e-10
+            if abs(dIp_dt) < 1e-5
                 dIp_dt = 0;
             end
 

@@ -8,9 +8,9 @@ extra_state_fields = {'insulin_to_infuse','last_IIR','CHO_to_eat','D','lastQsto'
 input_fields = {'CHO', 'IIR'};
 true_input_fields = {'CHO_consumed_rate','IIR_dt'};
 
-use_true_patient = false;
-use_tuned_model = false;
-use_true_model = true;
+use_true_patient = true;
+use_tuned_model = true;
+use_true_model = false;
 
 if use_true_patient
     use_anderson = false;
@@ -42,7 +42,7 @@ if use_true_patient
 end
 
 use_known_init_conditions = true;
-do_measurment_update = false;
+do_measurment_update = true;
 compute_mse = true;
 
 simulate_anomalies = false;
@@ -102,10 +102,11 @@ end
 % 1000 1000 is good for true patient
 % 25 160 is good for simulated patient
 
-high_uncertainty = 25;
+high_uncertainty = 1000;
 Q = diag([10,10,10,high_uncertainty,high_uncertainty,high_uncertainty,0,0,0,0,0,0,0]);    % TBD
-R = 160;  % TBD
-ekf_dt = 0.5; % [min]
+% Q = eye(length(state_fields)) * high_uncertainty;
+R = 1000;  % TBD
+ekf_dt = 1; % [min]
 
 % if simulate_anomalies
 %     run('error_gen.m')

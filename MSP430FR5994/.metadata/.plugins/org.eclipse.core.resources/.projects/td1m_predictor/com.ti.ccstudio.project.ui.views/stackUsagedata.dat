@@ -8,9 +8,9 @@
          <name>main</name>
          <stack_size>0x4</stack_size>
          <makes_indirect_call>false</makes_indirect_call>
-         <file>../src/NoFearForDiabetes/main.c</file>
+         <file>../src/NoFearForDiabetes/scripts/main.c</file>
          <line>0x3d</line>
-         <address>0x4036</address>
+         <address>0x10036</address>
          <is_combined>false</is_combined>
          <definition_seen>true</definition_seen>
          <has_stack_usage_info>true</has_stack_usage_info>
@@ -22,7 +22,7 @@
          <makes_indirect_call>false</makes_indirect_call>
          <file>boot.c</file>
          <line>0xa3</line>
-         <address>0x403a</address>
+         <address>0x4000</address>
          <is_combined>false</is_combined>
          <definition_seen>true</definition_seen>
          <has_stack_usage_info>true</has_stack_usage_info>
@@ -38,7 +38,7 @@
          <makes_indirect_call>false</makes_indirect_call>
          <file>mpu_init.c</file>
          <line>0x33</line>
-         <address>0x4000</address>
+         <address>0x10000</address>
          <is_combined>false</is_combined>
          <definition_seen>true</definition_seen>
          <has_stack_usage_info>true</has_stack_usage_info>
@@ -50,7 +50,7 @@
          <makes_indirect_call>false</makes_indirect_call>
          <file>pre_init.c</file>
          <line>0x38</line>
-         <address>0x4032</address>
+         <address>0x10032</address>
          <is_combined>false</is_combined>
          <definition_seen>true</definition_seen>
          <has_stack_usage_info>true</has_stack_usage_info>
@@ -74,7 +74,7 @@
          <makes_indirect_call>false</makes_indirect_call>
          <file>exit.c</file>
          <line>0x63</line>
-         <address>0x402c</address>
+         <address>0x1002c</address>
          <is_combined>false</is_combined>
          <definition_seen>true</definition_seen>
          <has_stack_usage_info>true</has_stack_usage_info>

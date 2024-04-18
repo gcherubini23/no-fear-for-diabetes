@@ -4,6 +4,6 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 CMD_SRCS += \
-../lnk_msp430fr5994.cmd 
+../lnk_msp430fr5994_modified_by_me.cmd 
 
 

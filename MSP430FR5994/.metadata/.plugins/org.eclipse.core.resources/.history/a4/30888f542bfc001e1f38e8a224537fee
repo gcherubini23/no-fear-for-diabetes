@@ -1,0 +1,9 @@
+#include <msp430.h>
+#include <stdio.h>
+#include "driverlib.h"
+#include "memory_util.h"
+
+
+void euler_solve(float x[STATE_SPACE], float y[EXTRA_STATE_SPACE], float u[EXTRA_STATE_SPACE], float v[EXTRA_STATE_SPACE], float dt) {
+
+}

@@ -1,6 +1,9 @@
-"./src/IntermittentLearn/actions_NN.obj"
-"./src/IntermittentLearn/intermittent_learning.obj"
-"./src/IntermittentLearn/memory_util.obj"
+"./src/NoFearForDiabetes/scripts/anomaly_detector.obj"
+"./src/NoFearForDiabetes/scripts/ekf.obj"
+"./src/NoFearForDiabetes/scripts/main.obj"
+"./src/NoFearForDiabetes/scripts/memory_util.obj"
+"./src/NoFearForDiabetes/scripts/model.obj"
+"./src/NoFearForDiabetes/scripts/util.obj"
 "./src/driverlib/MSP430FR5xx_6xx/adc12_b.obj"
 "./src/driverlib/MSP430FR5xx_6xx/aes256.obj"
 "./src/driverlib/MSP430FR5xx_6xx/comp_e.obj"
@@ -35,7 +38,7 @@
 "./src/driverlib/MSP430FR5xx_6xx/tlv.obj"
 "./src/driverlib/MSP430FR5xx_6xx/uups.obj"
 "./src/driverlib/MSP430FR5xx_6xx/wdt_a.obj"
-"../lnk_msp430fr5994.cmd"
+"../lnk_msp430fr5994_modified_by_me.cmd"
 -llibmpu_init.a
 -llibmath.a
 -llibc.a

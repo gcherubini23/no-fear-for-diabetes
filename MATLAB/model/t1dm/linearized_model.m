@@ -133,31 +133,32 @@ classdef linearized_model
 
     methods(Static)      
         function [y_k, v_k] = preprocess(x_k,y_kminus1,u_k,params,dt)
-            % What are the true inputs?
-            
+            % What are the true inputs? 
             % Insulin
             if y_kminus1.insulin_to_infuse <= 0
                 IIR_dt = u_k.IIR;
             else
-                IIR_dt = y_kminus1.last_IIR;    % assuming I do not inject new insulin if I still have some to inject
+                IIR_dt = max(u_k.IIR, y_kminus1.last_IIR);    % assuming I do not inject new insulin if I still have some to inject
             end
             
             insulin_to_infuse = y_kminus1.insulin_to_infuse + u_k.IIR;  % [U] as it is multiplied by 1 min
            
             % Check if we have enough insulin to infuse for this time step.
-            if insulin_to_infuse < IIR_dt * dt
+            if insulin_to_infuse < IIR_dt * dt && dt ~= 0
                 % If there isn't enough insulin to infuse, just infuse whatever is left.
                 IIR_dt = insulin_to_infuse / dt;
-            end
-
-            new_insulin_to_infuse = max(0, insulin_to_infuse - IIR_dt * dt);
-            epsilon = 1e-5;
-            if new_insulin_to_infuse <= epsilon
-                new_insulin_to_infuse = 0;
+                insulin_to_infuse = 0;
+            else
+                insulin_to_infuse = insulin_to_infuse - IIR_dt * dt;
+                if insulin_to_infuse < 1e-5
+                    insulin_to_infuse = 0;
+                end
             end
             
             % CHO
-            if (y_kminus1.CHO_to_eat / dt >= params.eat_rate) || (u_k.CHO / dt >= params.eat_rate && y_kminus1.CHO_to_eat == 0)
+            if dt == 0
+                CHO_consumed_rate = 0;
+            elseif (y_kminus1.CHO_to_eat / dt >= params.eat_rate) || (u_k.CHO / dt >= params.eat_rate && y_kminus1.CHO_to_eat == 0)
                 CHO_consumed_rate = params.eat_rate;
             elseif (u_k.CHO > 0) && (u_k.CHO / dt < params.eat_rate) && (y_kminus1.CHO_to_eat == 0)
                 CHO_consumed_rate = u_k.CHO / dt;
@@ -188,7 +189,7 @@ classdef linearized_model
             end
 
             v_k = struct('CHO_consumed_rate',CHO_consumed_rate,'IIR_dt',IIR_dt);
-            y_k = struct('insulin_to_infuse',new_insulin_to_infuse,'last_IIR',IIR_dt,'CHO_to_eat',new_CHO_to_eat,'D',new_D,'lastQsto',lastQsto,'is_eating',is_eating);
+            y_k = struct('insulin_to_infuse',insulin_to_infuse,'last_IIR',IIR_dt,'CHO_to_eat',new_CHO_to_eat,'D',new_D,'lastQsto',lastQsto,'is_eating',is_eating);
 
         end
     end

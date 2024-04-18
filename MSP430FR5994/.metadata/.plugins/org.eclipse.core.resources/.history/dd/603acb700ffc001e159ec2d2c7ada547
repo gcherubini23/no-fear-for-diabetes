@@ -1,0 +1,5 @@
+void update_patient(const float p_values[NUM_TUNING_PARAMS], const int p_names[NUM_TUNING_PARAMS], bool initialization);
+void preprocess(const float x[STATE_SPACE], const float u[INPUT_SPACE], float y[EXTRA_STATE_SPACE], float v[MODEL_INPUT_SPACE], const float dt, const float params[NUM_PARAMS]);
+void gastro_intestinal_tract(const float x[STATE_SPACE], const float y[EXTRA_STATE_SPACE], const float v[MODEL_INPUT_SPACE], float dx_dt[STATE_SPACE], const float params[NUM_PARAMS]);
+void glucose_subystem(const float x[STATE_SPACE], float dx_dt[STATE_SPACE], const float params[NUM_PARAMS]);
+void insulin_infusion_subsystem(const float x[STATE_SPACE], const float v[MODEL_INPUT_SPACE], float dx_dt[STATE_SPACE], const float params[NUM_PARAMS]);
