@@ -1,0 +1,28 @@
+#include <msp430.h>
+#include "config.h"
+
+// Define what needs to be in FRAM
+#pragma PERSISTENT(mQ)
+float mQ[STATE_SPACE][STATE_SPACE] = { 0 };
+
+#pragma PERSISTENT(mR)
+float mR = 0;
+
+//#pragma PERSISTENT(K)
+//float K[STATE_SPACE] = { 0 };
+
+#pragma PERSISTENT(mH)
+float mH[STATE_SPACE] = { 0 };
+
+// Define what needs to be in FRAM
+#pragma PERSISTENT(params)
+float params[NUM_PARAMS] = { 0 };
+
+#pragma PERSISTENT(mA)
+float mA[STATE_SPACE][STATE_SPACE] = { 0 };
+
+#pragma PERSISTENT(mB)
+float mB[STATE_SPACE][MODEL_INPUT_SPACE] = { 0 };
+
+#pragma PERSISTENT(mD)
+float mD[STATE_SPACE] = { 0 };

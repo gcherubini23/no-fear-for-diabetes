@@ -48,7 +48,7 @@ ORDERED_OBJS += \
 "./src/driverlib/MSP430FR5xx_6xx/tlv.obj" \
 "./src/driverlib/MSP430FR5xx_6xx/uups.obj" \
 "./src/driverlib/MSP430FR5xx_6xx/wdt_a.obj" \
-"../lnk_msp430fr5994_modified_by_me.cmd" \
+"../lnk_msp430fr5994.cmd" \
 $(GEN_CMDS__FLAG) \
 -llibmpu_init.a \
 -llibmath.a \

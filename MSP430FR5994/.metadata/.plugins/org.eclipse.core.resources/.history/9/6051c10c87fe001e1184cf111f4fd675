@@ -1,0 +1,82 @@
+#include <msp430.h>
+#include <stdio.h>
+#include <stdbool.h>
+#include <math.h>
+#include "config.h"
+#include "driverlib.h"
+#include "memory_util.h"
+#include "model.h"
+#include "util.h"
+
+// Define what needs to be in FRAM
+#pragma PERSISTENT(mQ)
+float mQ[STATE_SPACE][STATE_SPACE] = { 0 };
+
+#pragma PERSISTENT(mR)
+float mR = 0;
+
+//#pragma PERSISTENT(K)
+//float K[STATE_SPACE] = { 0 };
+
+#pragma PERSISTENT(mH)
+float mH[STATE_SPACE] = { 0 };
+
+// ---------- Functions -----------
+//#pragma CODE_SECTION(init_ekf, ".ramfunc")
+void init_ekf() {
+    fw(&mQ[G_P][G_P], MODEL_COV);
+    fw(&mQ[G_T][G_T], MODEL_COV);
+    fw(&mQ[G_SC][G_SC], MODEL_COV);
+
+    fw(&mR, SENSOR_COV);
+
+    float v_g = fr(&params[VG]);
+    fw(&mH[G_SC], 1 / v_g);
+}
+
+//#pragma CODE_SECTION(update_measurement_cov, ".ramfunc")
+void update_measurement_cov(double z) {
+    float cov = (CGM_MARD / 100 * z) * (CGM_MARD / 100 * z);
+    fw(&mR, cov);
+}
+
+//#pragma CODE_SECTION(process_update, ".ramfunc")
+void process_update(float x[STATE_SPACE], float P[STATE_SPACE][STATE_SPACE], const float u[INPUT_SPACE], float y[EXTRA_STATE_SPACE], float v[MODEL_INPUT_SPACE], float dt, const float params[NUM_PARAMS]) {
+    float xkmin1[STATE_SPACE];
+    int i, j;
+    for (i = 0; i < STATE_SPACE; i++) {
+        xkmin1[i] = x[i];
+    }
+    euler_solve(x, u, y, v, dt, params);
+    linearize(xkmin1, y, FALSE, params);
+    float A_T[STATE_SPACE][STATE_SPACE], A[STATE_SPACE][STATE_SPACE];
+    readFloatMatrix(mA, A, STATE_SPACE, STATE_SPACE);
+    transpose(A, A_T, STATE_SPACE, STATE_SPACE);
+    float temp1[STATE_SPACE][STATE_SPACE], temp2[STATE_SPACE][STATE_SPACE];
+    matrixMultiply(A, STATE_SPACE, STATE_SPACE, P, STATE_SPACE, STATE_SPACE, temp1);
+    matrixMultiply(temp1, STATE_SPACE, STATE_SPACE, A_T, STATE_SPACE, STATE_SPACE, temp2);
+    float Q[STATE_SPACE][STATE_SPACE];
+    readFloatMatrix(mQ, Q, STATE_SPACE, STATE_SPACE);
+    matrixAddInPlace(temp2, Q, STATE_SPACE, STATE_SPACE);
+    for (i = 0; i < STATE_SPACE; i++) {
+        for (j = 0; j < STATE_SPACE; j++) {
+            P[i][j] = temp2[i][j];
+        }
+    }
+}
+
+//#pragma CODE_SECTION(measurement_update, ".ramfunc")
+void measurement_update(float x[STATE_SPACE], float P[STATE_SPACE][STATE_SPACE], float z, float* residual, float* innovation_cov) {
+    float* H[1], R[1], state[1], measurement[1];
+
+    readFloatArray(mH, H[0], STATE_SPACE);
+    float r = fr(&mR)
+    R[0] =
+}
+
+//#pragma CODE_SECTION(predict, ".ramfunc")
+void predict() {
+    float patient[NUM_PARAMS];
+    readFloatArray(params, patient, NUM_PARAMS);
+
+}

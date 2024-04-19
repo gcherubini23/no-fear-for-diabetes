@@ -1,6 +1,7 @@
 #include <msp430.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include "driverlib.h"
 #include "memory_util.h"
 #include "model.h"
@@ -24,11 +25,29 @@ void arrayAddInPlace(float* vec1, const float* vec2, int length, bool make_non_n
             }
 }
 
+float arrayMultiply(const float* vec1, const float* vec2, int length) {
+    int i;
+    float sum = 0;
+    for (i = 0; i < length; i++) {
+        sum += vec1[i] * vec2[i];
+    }
+    return sum;
+}
+
 void matrixAddInPlace(float** A, const float** B, int rows, int cols) {
     int i, j;
     for (i = 0; i < rows; i++) {
         for (j = 0; j < cols; j++) {
             A[i][j] += B[i][j];
+        }
+    }
+}
+
+void matrixDiffInPlace(float** A, const float** B, int rows, int cols) {
+    int i, j;
+    for (i = 0; i < rows; i++) {
+        for (j = 0; j < cols; j++) {
+            A[i][j] -= B[i][j];
         }
     }
 }
@@ -49,10 +68,20 @@ int matrixMultiply(const float** A, int rowsA, int colsA, const float** B, int r
     return TRUE;
 }
 
-void euler_solve(float x[STATE_SPACE], const float u[INPUT_SPACE], float y[EXTRA_STATE_SPACE], float v[MODEL_INPUT_SPACE], float dt) {
+void transpose(const float** A, float** A_T, int rows, int cols) {
+    int i, j;
+    for (i = 0; i < rows; i++) {
+        for (j = 0; j < cols; j++) {
+            A_T[j][i] = A[i][j];
+        }
+    }
+}
+
+void euler_solve(float x[STATE_SPACE], const float u[INPUT_SPACE], float y[EXTRA_STATE_SPACE], float v[MODEL_INPUT_SPACE], float dt, const float params[NUM_PARAMS]) {
     preprocess(x, u, y, v, dt);
     float dx_dt[STATE_SPACE];
-    step(x, y, v, dx_dt);
+    step(x, y, v, dx_dt, params);
     arrayScalarMultiply(dx_dt, STATE_SPACE, dt);
     arrayAddInPlace(x, dx_dt, STATE_SPACE, TRUE);
 }
+
