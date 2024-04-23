@@ -26,17 +26,18 @@ bool update_patient(const float p_values[NUM_TUNING_PARAMS], const int p_names[N
 
     float patient[NUM_PARAMS];
     readFloatArray(params, patient, NUM_PARAMS);
-
     int i;
     for(i=0; i<NUM_TUNING_PARAMS; i++){
         patient[p_names[i]] = p_values[i];
     }
+
     if (initialization){
         patient[CL] = 0.0242 * patient[BW];
+        patient[U2SS] = patient[BASAL] * 6000 / patient[BW];
         }
     patient[M30] = patient[M1] * patient[HEB] / (1 - patient[HEB]);
-    patient[M2] = 3 / 5 * patient[CL] / (patient[HEB] * patient[VI] * patient[BW]);
-    patient[M4] = 2 / 5 * patient[CL] / (patient[VI] * patient[BW]);
+    patient[M2] = 0.6 * patient[CL] / (patient[HEB] * patient[VI] * patient[BW]);
+    patient[M4] = 0.4 * patient[CL] / (patient[VI] * patient[BW]);
     patient[IPB] = patient[U2SS] / (patient[M2] + patient[M4] - patient[M1] * patient[M2] / (patient[M1] + patient[M30]));
     patient[ILB] = patient[M2] / (patient[M1] + patient[M30]) * patient[IPB];
     patient[IB] = patient[IPB] / patient[VI];
@@ -196,30 +197,6 @@ void step(const float x[STATE_SPACE], const float y[EXTRA_STATE_SPACE], const fl
     gastro_intestinal_tract(x, y, v, dx_dt, params);
     glucose_subystem(x, dx_dt, params);
     insulin_infusion_subsystem(x, v, dx_dt, params);
-}
-
-//#pragma CODE_SECTION(init_condition, ".ramfunc")
-void init_condition(float x[STATE_SPACE], float y[EXTRA_STATE_SPACE]) {
-    x[Q_STO1] = 0;
-    x[Q_STO2] = 0;
-    x[Q_GUT] = 0;
-    x[G_P] = fr(&params[GPB]);
-    x[G_T] = fr(&params[GTB]);
-    x[G_SC] = fr(&params[GPB]);
-    x[I_L] = fr(&params[ILB]);
-    x[I_P] = fr(&params[IPB]);
-    x[I_1] = fr(&params[IB]);
-    x[I_D] = fr(&params[IB]);
-    x[X] = 0;
-    x[I_SC1] = fr(&params[ISC1SS]);
-    x[I_SC2] = fr(&params[ISC2SS]);
-
-    y[INS_TO_INF] = 0;
-    y[LAST_IIR] = 0;
-    y[CHO_TO_EAT] = 0;
-    y[D] = 0;
-    y[LAST_Q_STO] = 0;
-    y[IS_EATING] = 0;
 }
 
 //#pragma CODE_SECTION(linearize, ".ramfunc")

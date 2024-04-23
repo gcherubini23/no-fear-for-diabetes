@@ -1,5 +1,6 @@
 #include <msp430.h>
 #include <stdio.h>
+#include <string.h>
 #include "driverlib.h"
 
 long lr(long *addr)
@@ -56,7 +57,8 @@ void readFloatMatrix(const float** source, float** destination, int rows, int co
     int i, j;
     for (i = 0; i < rows; i++) {
         for (j = 0; j < cols; j++) {
-            destination[i][j] = fr(source[i] + j);
+//            destination[i][j] = fr(&source[i][j]);
+            destination[i][j] = source[i][j];
         }
     }
 }
@@ -65,7 +67,7 @@ void writeFloatMatrix(float** addr, const float** values, int rows, int cols) {
     int i, j;
     for (i = 0; i < rows; i++) {
         for (j = 0; j < cols; j++) {
-            fw(addr[i] + j, values[i][j]);
+            fw(&addr[i][j], values[i][j]);
         }
     }
 }

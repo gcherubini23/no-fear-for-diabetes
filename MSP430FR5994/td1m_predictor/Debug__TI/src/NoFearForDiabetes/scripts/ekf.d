@@ -18,6 +18,8 @@ src/NoFearForDiabetes/scripts/ekf.obj: /Applications/ti/ccs1250/ccs/tools/compil
 src/NoFearForDiabetes/scripts/ekf.obj: /Applications/ti/ccs1250/ccs/tools/compiler/ti-cgt-msp430_21.6.1.LTS/include/math.h
 src/NoFearForDiabetes/scripts/ekf.obj: /Applications/ti/ccs1250/ccs/tools/compiler/ti-cgt-msp430_21.6.1.LTS/include/_defs.h
 src/NoFearForDiabetes/scripts/ekf.obj: /Applications/ti/ccs1250/ccs/tools/compiler/ti-cgt-msp430_21.6.1.LTS/include/machine/_limits.h
+src/NoFearForDiabetes/scripts/ekf.obj: /Applications/ti/ccs1250/ccs/tools/compiler/ti-cgt-msp430_21.6.1.LTS/include/string.h
+src/NoFearForDiabetes/scripts/ekf.obj: /Applications/ti/ccs1250/ccs/tools/compiler/ti-cgt-msp430_21.6.1.LTS/include/xlocale/_string.h
 src/NoFearForDiabetes/scripts/ekf.obj: /Users/giovannicherubini/Desktop/Thesis/Code/no-fear-for-diabetes/MSP430FR5994/td1m_predictor/src/NoFearForDiabetes/headers/config.h
 src/NoFearForDiabetes/scripts/ekf.obj: /Users/giovannicherubini/Desktop/Thesis/Code/no-fear-for-diabetes/MSP430FR5994/td1m_predictor/src/driverlib/MSP430FR5xx_6xx/driverlib.h
 src/NoFearForDiabetes/scripts/ekf.obj: /Users/giovannicherubini/Desktop/Thesis/Code/no-fear-for-diabetes/MSP430FR5994/td1m_predictor/src/driverlib/MSP430FR5xx_6xx/inc/hw_memmap.h
@@ -99,6 +101,10 @@ src/NoFearForDiabetes/scripts/ekf.obj: /Users/giovannicherubini/Desktop/Thesis/C
 /Applications/ti/ccs1250/ccs/tools/compiler/ti-cgt-msp430_21.6.1.LTS/include/_defs.h:
 
 /Applications/ti/ccs1250/ccs/tools/compiler/ti-cgt-msp430_21.6.1.LTS/include/machine/_limits.h:
+
+/Applications/ti/ccs1250/ccs/tools/compiler/ti-cgt-msp430_21.6.1.LTS/include/string.h:
+
+/Applications/ti/ccs1250/ccs/tools/compiler/ti-cgt-msp430_21.6.1.LTS/include/xlocale/_string.h:
 
 /Users/giovannicherubini/Desktop/Thesis/Code/no-fear-for-diabetes/MSP430FR5994/td1m_predictor/src/NoFearForDiabetes/headers/config.h:
 

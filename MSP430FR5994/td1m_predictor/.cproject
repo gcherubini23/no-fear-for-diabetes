@@ -335,7 +335,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="lnk_msp430fr5994_modified_by_me.cmd|src/IntermittentLearn|msp430fr5994.ld|lnk_msp430fr5994_new.cmd" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="src/IntermittentLearn|lnk_msp430fr5994_modified_by_me.cmd|msp430fr5994.ld|lnk_msp430fr5994_new.cmd" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

@@ -1,0 +1,28 @@
+#include <msp430.h>
+#include <stdio.h>
+#include <stdbool.h>
+#include <math.h>
+#include <time.h>
+#include "memory_util.h"
+#include "config.h"
+
+
+
+bool sample_measurement(float* z) {
+
+
+
+    return FALSE;
+}
+
+bool sample_input(float* u) {
+
+
+
+
+    return FALSE;
+}
+
+float current_time() {
+    return (float)clock() / CLOCKS_PER_SEC / 60;
+}

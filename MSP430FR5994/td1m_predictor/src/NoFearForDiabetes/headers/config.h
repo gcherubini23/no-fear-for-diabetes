@@ -7,7 +7,7 @@
 #define INPUT_SPACE         2       // ['CHO', 'IIR']
 #define MODEL_INPUT_SPACE   2       // ['CHO_consumed_rate','IIR_dt']
 #define NUM_PARAMS          46
-#define NUM_TUNING_PARAMS   46
+#define NUM_TUNING_PARAMS   31
 // ------------------- END --------------------
 
 // ---------------- INDICES -------------------
@@ -114,6 +114,12 @@ extern float mD[STATE_SPACE];
 extern float mQ[STATE_SPACE][STATE_SPACE];
 extern float mR;
 extern float mH[STATE_SPACE];
+extern float x[STATE_SPACE];
+extern float P[STATE_SPACE][STATE_SPACE];
+extern float y[EXTRA_STATE_SPACE];
+extern float u[INPUT_SPACE];
+extern float t;
+extern float last_update_t;
 // ------------------- END -----------------------
 
 #endif

@@ -5,7 +5,7 @@
    <string>defaultSolution</string>
    <void method="set">
     <object idref="SolutionManager$PersistState0"/>
-    <string>/Applications/ti/ccs1250/ccs/ccs_base/dvt_4.1.0.202307061549/CodeGen/solutions/CodeGenCoverage</string>
+    <string>/Users/giovannicherubini/Desktop/Thesis/Code/no-fear-for-diabetes/MSP430FR5994/dvt/AnalysisSolutionsTemp/AnalysisSolution1713811239527/null</string>
    </void>
   </void>
  </object>
@@ -14,10 +14,10 @@
  <void id="ArrayList0" method="get">
   <object idref="SolutionManager$PersistState0"/>
   <void method="add">
-   <string>/Users/giovannicherubini/Desktop/Thesis/Code/no-fear-for-diabetes/MSP430FR5994/dvt/AnalysisSolutionsTemp/AnalysisSolution1713382433593/null</string>
+   <string>/Applications/ti/ccs1250/ccs/ccs_base/dvt_4.1.0.202307061549/CodeGen/solutions/CodeGenCoverage</string>
   </void>
   <void method="add">
-   <string>/Applications/ti/ccs1250/ccs/ccs_base/dvt_4.1.0.202307061549/CodeGen/solutions/CodeGenCoverage</string>
+   <string>/Users/giovannicherubini/Desktop/Thesis/Code/no-fear-for-diabetes/MSP430FR5994/dvt/AnalysisSolutionsTemp/AnalysisSolution1713811239527/null</string>
   </void>
  </void>
 </void>
