@@ -52,22 +52,3 @@ void writeFloatArray(float* addr, const float* values, int size) {
         fw(addr + i, values[i]);
     }
 }
-
-void readFloatMatrix(const float** source, float** destination, int rows, int cols) {
-    int i, j;
-    for (i = 0; i < rows; i++) {
-        for (j = 0; j < cols; j++) {
-//            destination[i][j] = fr(&source[i][j]);
-            destination[i][j] = source[i][j];
-        }
-    }
-}
-
-void writeFloatMatrix(float** addr, const float** values, int rows, int cols) {
-    int i, j;
-    for (i = 0; i < rows; i++) {
-        for (j = 0; j < cols; j++) {
-            fw(&addr[i][j], values[i][j]);
-        }
-    }
-}

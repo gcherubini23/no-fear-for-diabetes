@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<section name="Workbench">
+	<section name="FilterExpression">
+	</section>
+	<section name="Find in Power">
+		<item key="x" value="1000"/>
+		<item key="y" value="423"/>
+		<item key="w" value="426"/>
+		<item key="h" value="261"/>
+		<item key="tagIndex" value="0"/>
+		<item key="fieldName1" value="Power"/>
+		<item key="operatorName1" value=""/>
+		<item key="fieldValue1" value=""/>
+		<item key="useBitsMask1" value="false"/>
+		<item key="bitsMask1" value=""/>
+		<item key="caseSensitive1" value="false"/>
+		<item key="backward1" value="false"/>
+		<item key="wrap1" value="false"/>
+	</section>
+	<section name="Find in States">
+		<item key="x" value="812"/>
+		<item key="y" value="422"/>
+		<item key="w" value="426"/>
+		<item key="h" value="370"/>
+		<item key="tagIndex" value="1"/>
+		<item key="fieldName2" value=""/>
+		<item key="operatorName2" value=""/>
+		<item key="fieldValue2" value=""/>
+		<item key="useBitsMask2" value="false"/>
+		<item key="bitsMask2" value=""/>
+		<item key="caseSensitive2" value="false"/>
+		<item key="Expression" value=""/>
+		<item key="backward2" value="false"/>
+		<item key="wrap2" value="false"/>
+	</section>
+	<section name="Find in Energy">
+		<item key="x" value="550"/>
+		<item key="y" value="188"/>
+		<item key="w" value="426"/>
+		<item key="h" value="370"/>
+		<item key="tagIndex" value="1"/>
+		<item key="fieldName2" value=""/>
+		<item key="operatorName2" value=""/>
+		<item key="fieldValue2" value=""/>
+		<item key="useBitsMask2" value="false"/>
+		<item key="bitsMask2" value=""/>
+		<item key="caseSensitive2" value="false"/>
+		<item key="Expression" value=""/>
+		<item key="backward2" value="false"/>
+		<item key="wrap2" value="false"/>
+	</section>
+</section>

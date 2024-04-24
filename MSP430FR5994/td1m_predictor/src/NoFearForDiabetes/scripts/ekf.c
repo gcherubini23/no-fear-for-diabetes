@@ -22,13 +22,14 @@ float mH[STATE_SPACE] = { 0 };
 // ---------- Functions -----------
 //#pragma CODE_SECTION(init_ekf, ".ramfunc")
 void init_ekf() {
+    float v_g = fr(&params[VG]);
+
     fw(&mQ[G_P][G_P], MODEL_COV);
     fw(&mQ[G_T][G_T], MODEL_COV);
     fw(&mQ[G_SC][G_SC], MODEL_COV);
 
     fw(&mR, SENSOR_COV);
 
-    float v_g = fr(&params[VG]);
     fw(&mH[G_SC], 1 / v_g);
 }
 
@@ -40,78 +41,62 @@ void update_measurement_cov(float z) {
 
 //#pragma CODE_SECTION(process_update, ".ramfunc")
 void process_update(float x[STATE_SPACE], float P[STATE_SPACE][STATE_SPACE], const float u[INPUT_SPACE], float y[EXTRA_STATE_SPACE], float v[MODEL_INPUT_SPACE], float dt, const float params[NUM_PARAMS]) {
-    float xkmin1[STATE_SPACE];
-    int i;
-    for (i = 0; i < STATE_SPACE; i++) {
-        xkmin1[i] = x[i];
-    }
+    float xkmin1[STATE_SPACE], A_T[STATE_SPACE][STATE_SPACE], A[STATE_SPACE][STATE_SPACE], temp1[STATE_SPACE][STATE_SPACE], Q[STATE_SPACE][STATE_SPACE];
+    memcpy(xkmin1, x, STATE_SPACE * sizeof(float));
     euler_solve(x, u, y, v, dt, params);
     linearize(xkmin1, y, FALSE, params);
-    float A_T[STATE_SPACE][STATE_SPACE], A[STATE_SPACE][STATE_SPACE];
-    readFloatMatrix(mA, A, STATE_SPACE, STATE_SPACE);
-    transpose(A, A_T, STATE_SPACE, STATE_SPACE);
-    float temp1[STATE_SPACE][STATE_SPACE];
-    matrixMultiply(A, STATE_SPACE, STATE_SPACE, P, STATE_SPACE, STATE_SPACE, temp1);
-    matrixMultiply(temp1, STATE_SPACE, STATE_SPACE, A_T, STATE_SPACE, STATE_SPACE, P);
-    float Q[STATE_SPACE][STATE_SPACE];
-    readFloatMatrix(mQ, Q, STATE_SPACE, STATE_SPACE);
-    matrixAddInPlace(P, Q, STATE_SPACE, STATE_SPACE);
+    memcpy(A, mA, STATE_SPACE * STATE_SPACE * sizeof(float));
+    memcpy(Q, mQ, STATE_SPACE * STATE_SPACE * sizeof(float));
+    SquareMatrixTranspose(A, A_T);
+    SquareMatrixMultiply(A, P, temp1);
+    SquareMatrixMultiply(temp1, A_T, P);
+    SquareMatrixAdd(P, Q);;
 }
 
 //#pragma CODE_SECTION(measurement_update, ".ramfunc")
 void measurement_update(float x[STATE_SPACE], float P[STATE_SPACE][STATE_SPACE], float z, float* residual, float* innovation_cov) {
-    float H[1][STATE_SPACE];
-    readFloatArray(mH, H[0], STATE_SPACE);
-    float R[1][1] = {fr(&mR)};
+    float H[STATE_SPACE], P_Ht[STATE_SPACE], KRK[STATE_SPACE][STATE_SPACE], temp[STATE_SPACE][STATE_SPACE], eyet[STATE_SPACE][STATE_SPACE];
+    float eye[STATE_SPACE][STATE_SPACE] = {0};
+    float* K;
+    float cov, weight, observed_state;
+    float r = fr(&mR);
+    int i, j;
+    readFloatArray(mH, H, STATE_SPACE);
 
-    float H_T[STATE_SPACE][1];
-    transpose(H, H_T, 1, STATE_SPACE);
-    float P_H_T[STATE_SPACE][1];
-    matrixMultiply(P, STATE_SPACE, STATE_SPACE, H_T, STATE_SPACE, 1, P_H_T);
-    float temp1[1][1];
-    matrixMultiply(H, 1, STATE_SPACE, P_H_T, STATE_SPACE, 1, temp1);
-    matrixAddInPlace(temp1, R, 1, 1);
-    *innovation_cov = temp1[0][0];
-
-    float temp2[1][1] = {1 / *innovation_cov};
-    float K[STATE_SPACE][1];
-    matrixMultiply(P_H_T, STATE_SPACE, 1, temp2, 1, 1, K);
-    *residual = z - arrayMultiply(H[0], x, STATE_SPACE);
-
-    float eye[STATE_SPACE][STATE_SPACE] = { 0 };
-    int i;
-    for (i = 0; i < STATE_SPACE; i++) {
-        x[i] += K[i][0] * *residual;
+    ArrayMatrixMultiply(H, P, P_Ht, FALSE);
+    cov = arrayMultiply(P_Ht, H, STATE_SPACE);
+    *innovation_cov = cov + r;
+    weight = 1 / *innovation_cov;
+    arrayScalarMultiply(P_Ht, STATE_SPACE, weight);
+    K = P_Ht;
+    observed_state = arrayMultiply(H, x, STATE_SPACE);
+    *residual = z - observed_state;
+    for(i = 0; i < STATE_SPACE; i++) {
+        x[i] += K[i] * *residual;
         eye[i][i] = 1;
     }
-
-    float K_H[STATE_SPACE][STATE_SPACE];
-    matrixMultiply(K, STATE_SPACE, 1, H, 1, STATE_SPACE, K_H);
-    matrixDiffInPlace(eye, K_H, STATE_SPACE, STATE_SPACE);
-    float eye_T[STATE_SPACE][STATE_SPACE];
-    transpose(eye, eye_T, STATE_SPACE, STATE_SPACE);
-    float temp3[STATE_SPACE][STATE_SPACE];
-    matrixMultiply(eye, STATE_SPACE, STATE_SPACE, P, STATE_SPACE, STATE_SPACE, temp3);
-    matrixMultiply(temp3, STATE_SPACE, STATE_SPACE, eye_T, STATE_SPACE, STATE_SPACE, P);
-
-    float temp4[STATE_SPACE][1];
-    matrixMultiply(K, STATE_SPACE, 1, R, 1, 1, temp4);
-    float K_T[1][STATE_SPACE], temp5[STATE_SPACE][STATE_SPACE];
-    transpose(K, K_T, STATE_SPACE, 1);
-    matrixMultiply(temp4, STATE_SPACE, 1, K_T, 1, STATE_SPACE, temp5);
-
-    matrixDiffInPlace(P, temp5, STATE_SPACE, STATE_SPACE);
+    for(i = 0; i < STATE_SPACE; i++) {
+        for(j = 0; j < STATE_SPACE; j++) {
+            eye[i][j] -= K[i] * H[j];
+            KRK[i][j] = K[i] * r * K[j];
+        }
+    }
+    SquareMatrixMultiply(eye, P, temp);
+    SquareMatrixTranspose(eye, eyet);
+    SquareMatrixMultiply(temp, eyet, P);
+    SquareMatrixDiff(P, KRK);
 }
 
 //#pragma CODE_SECTION(predict, ".ramfunc")
 void predict(float x[STATE_SPACE], float P[STATE_SPACE][STATE_SPACE], const float u[INPUT_SPACE], float y[EXTRA_STATE_SPACE], float horizon) {
     float patient[NUM_PARAMS];
-    readFloatArray(params, patient, NUM_PARAMS);
     float t = 0;
     float v[MODEL_INPUT_SPACE] = { 0 };
     float input_u[INPUT_SPACE] = { 0 };
+    readFloatArray(params, patient, NUM_PARAMS);
     input_u[CHO] = u[CHO];
     input_u[IIR] = u[IIR];
+
     while (t < horizon) {
         float step_dt = DT;
         float time_left = horizon - t;

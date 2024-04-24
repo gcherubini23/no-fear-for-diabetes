@@ -18,3 +18,10 @@ void init_patient() {
     update_patient(p_values, p_names, TRUE);
 }
 
+void init_model() {
+    float x_[STATE_SPACE], y_[EXTRA_STATE_SPACE], patient[NUM_PARAMS];
+    readFloatArray(x, x_, STATE_SPACE);
+    readFloatArray(y, y_, EXTRA_STATE_SPACE);
+    readFloatArray(params, patient, NUM_PARAMS);
+    linearize(x_, y_, TRUE, params);
+}

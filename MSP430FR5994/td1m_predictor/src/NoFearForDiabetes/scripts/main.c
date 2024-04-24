@@ -24,11 +24,8 @@ float y[EXTRA_STATE_SPACE] = { 0 };
 #pragma PERSISTENT(u)
 float u[INPUT_SPACE] = { 0 };
 
-#pragma PERSISTENT(t)
-float t = 0;
-
-#pragma PERSISTENT(last_update_t)
-float last_update_t = 0;
+#pragma PERSISTENT(secondsElapsed)
+long secondsElapsed = 0;
 
 
 void init_MCU()
@@ -36,32 +33,32 @@ void init_MCU()
     // Stop watchdog timer
     WDTCTL = WDTPW | WDTHOLD;
 
-    P1DIR = 0xFF;
-    P1OUT = 0x00;
-    P2DIR = 0xFF;
-    P2OUT = 0x00;
-    P3DIR = 0xFF;
-    P3OUT = 0x00;
-    P4DIR = 0xFF;
-    P4OUT = 0x00;
-    P5DIR = 0xFF;
-    P5OUT = 0x00;
-    P6DIR = 0xFF;
-    P6OUT = 0x00;
-    P7DIR = 0xFF;
-    P7OUT = 0x00;
-    P8DIR = 0xFF;
-    P8OUT = 0x00;
-    PADIR = 0xFF;
-    PAOUT = 0x00;
-    PBDIR = 0xFF;
-    PBOUT = 0x00;
-    PCDIR = 0xFF;
-    PCOUT = 0x00;
-    PDDIR = 0xFF;
-    PDOUT = 0x00;
+//    P1DIR = 0xFF;
+//    P1OUT = 0x00;
+//    P2DIR = 0xFF;
+//    P2OUT = 0x00;
+//    P3DIR = 0xFF;
+//    P3OUT = 0x00;
+//    P4DIR = 0xFF;
+//    P4OUT = 0x00;
+//    P5DIR = 0xFF;
+//    P5OUT = 0x00;
+//    P6DIR = 0xFF;
+//    P6OUT = 0x00;
+//    P7DIR = 0xFF;
+//    P7OUT = 0x00;
+//    P8DIR = 0xFF;
+//    P8OUT = 0x00;
+//    PADIR = 0xFF;
+//    PAOUT = 0x00;
+//    PBDIR = 0xFF;
+//    PBOUT = 0x00;
+//    PCDIR = 0xFF;
+//    PCOUT = 0x00;
+//    PDDIR = 0xFF;
+//    PDOUT = 0x00;
 
-#if 1
+#if 0
     // Configure one FRAM waitstate as required by the device datasheet for MCLK
     // operation beyond 8MHz _before_ configuring the clock system.
     FRCTL0 = FRCTLPW | NWAITS_1;
@@ -79,9 +76,18 @@ void init_MCU()
     __delay_cycles(60);
     CSCTL3 = DIVA__1 | DIVS__1 | DIVM__1;   // Set all dividers to 1 for 16MHz operation
     CSCTL0_H = 0;
+
 #endif
 
     PMM_unlockLPM5();
+}
+
+void init_timer() {
+    // Configure Timer_A
+    // Let's say we are using ACLK at 32768 Hz (typical for low-power modes on MSP430)
+    TA0CCTL0 = CCIE;                          // Enable interrupt for CCR0 match
+    TA0CTL = TASSEL__ACLK | MC__UP;           // ACLK, Up mode
+    TA0CCR0 = 32768 - 1;
 }
 
 void init_states() {
@@ -113,81 +119,53 @@ void init_states() {
 }
 
 void ekf_on() {
-    float z_k;
-    float u_k[INPUT_SPACE];
-    float time = current_time();
-    fw(&t, time);
-    bool new_measurement = sample_measurement(&z_k);
-    bool new_input = sample_input(u_k);
+    float z_k, u_k[INPUT_SPACE];
+    bool new_measurement, new_input;
+
+    new_measurement = sample_measurement(&z_k);
+    new_input = sample_input(u_k);
     if (new_measurement || new_input) {
-        float x_[STATE_SPACE];
-        float P_[STATE_SPACE][STATE_SPACE];
-        float y_[STATE_SPACE];
-        float u_[INPUT_SPACE];
+        float x_[STATE_SPACE], P_[STATE_SPACE][STATE_SPACE], y_[STATE_SPACE], u_[INPUT_SPACE], horizon;
+
         readFloatArray(x, x_, STATE_SPACE);
         readFloatArray(y, y_, EXTRA_STATE_SPACE);
-//        memcpy(P_, P, sizeof(P));
-        readFloatMatrix(P, P_, STATE_SPACE, STATE_SPACE);   // not copying
+        memcpy(P_, P, STATE_SPACE * STATE_SPACE * sizeof(float));
         readFloatArray(u, u_, INPUT_SPACE);
-
-        float horizon = fr(&t) - fr(&last_update_t);
+        horizon = lr(&secondsElapsed) / SEC_IN_MIN;
         predict(x_, P_, u_, y_, horizon);
+
         if (new_measurement) {
             float residual, innovation_cov;
+
             measurement_update(x_, P_, z_k, &residual, &innovation_cov);
             /* To implement anomaly detector */
         }
+
         writeFloatArray(x, x_, STATE_SPACE);
         writeFloatArray(y, y_, EXTRA_STATE_SPACE);
-        writeFloatMatrix(P, P_, STATE_SPACE, STATE_SPACE);
+        memcpy(P, P_, STATE_SPACE * STATE_SPACE * sizeof(float));
         writeFloatArray(u, u_k, INPUT_SPACE);
-        fw(&last_update_t, fr(&t));
+        lw(&secondsElapsed, 0);
     }
 }
 
 int main(void) {
     init_MCU();
+    init_timer();
     init_patient();
     init_ekf();
     init_states();
+    init_model();
 
-    /* LED for test */
-    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN0);
-    GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN0);
-    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN1);
-    GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN1);
-
-    /* setup interrupt */
-    GPIO_setAsInputPinWithPullDownResistor(GPIO_PORT_P1, GPIO_PIN3);
-    GPIO_selectInterruptEdge(GPIO_PORT_P1, GPIO_PIN3, GPIO_LOW_TO_HIGH_TRANSITION);
-    GPIO_clearInterrupt(GPIO_PORT_P1, GPIO_PIN3);
-    GPIO_enableInterrupt(GPIO_PORT_P1, GPIO_PIN3);
-
-    while (true) {
-        ekf_on();
-    }
-
-
-    _BIS_SR(LPM4_bits + GIE);
+    _BIS_SR(LPM3_bits + GIE);
 }
 
-#pragma vector=PORT1_VECTOR
-__interrupt void Port_1(void)
-{
-    /* LED for test */
-    GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN0);
-    GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN1);
-
-    while (true) {
-        uint8_t status = GPIO_getInputPinValue(GPIO_PORT_P1, GPIO_PIN3);
-        if (status == 0)
-            break;
-        ekf_on();
+#pragma vector=TIMER0_A0_VECTOR
+__interrupt void Timer_A0_ISR(void) {
+    long time;
+    time = lr(&secondsElapsed);
+    lw(&secondsElapsed, time+1);
+    if(time >= UPDATE_RATE) { // 300 seconds is 5 minutes
+        ekf_on();               // Call the EKF function
     }
-
-    /* LED for test */
-    GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN0);
-    GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN1);
-
-    GPIO_clearInterrupt(GPIO_PORT_P1, GPIO_PIN3);
 }

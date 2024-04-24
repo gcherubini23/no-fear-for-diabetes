@@ -1,1 +1,0 @@
-void update_patient(const float p_values[NUM_TUNING_PARAMS], const int p_names[NUM_TUNING_PARAMS], bool initialization)

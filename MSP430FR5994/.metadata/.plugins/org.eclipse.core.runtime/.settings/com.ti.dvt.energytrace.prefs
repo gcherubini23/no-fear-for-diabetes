@@ -1,2 +1,7 @@
+AutoStart=true
 DontShowETonlyMessage=always
+Mode=EnergyTrace++
+TargetVoltageUSB1=3000.0
+TargetVoltageUSB2=3000.0
+TargetVoltageUSB3=3000.0
 eclipse.preferences.version=1
