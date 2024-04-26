@@ -288,7 +288,7 @@ SECTIONS
     .reset       : {}               > RESET  /* MSP430 reset vector         */
 
 
-/*    .ramfunc : {} load=FRAM, run=RAM      */
+    .ramfunc : {} load=FRAM, run=RAM
 
 }
 /****************************************************************************/

@@ -99,8 +99,9 @@
 #define TRUE        1
 #define FALSE       0
 #define EPS         0.00001
-#define UPDATE_RATE 20
+#define UPDATE_RATE 33
 #define SEC_IN_MIN  1.0f
+#define ACLK_HZ     32768
 // Kalman Filter:
 #define DT          1
 #define CGM_MARD    15

@@ -8,13 +8,13 @@ extra_state_fields = {'insulin_to_infuse','last_IIR','CHO_to_eat','D','lastQsto'
 input_fields = {'CHO', 'IIR'};
 true_input_fields = {'CHO_consumed_rate','IIR_dt'};
 
-use_true_patient = true;
+use_true_patient = false;
 use_tuned_model = true;
 use_true_model = false;
 
 if use_true_patient
-    use_anderson = false;
-    use_tmoore = true;
+    use_anderson = true;
+    use_tmoore = false;
     if use_anderson
         patient_ID = 11;
         dailyBasal = 18;
@@ -46,23 +46,23 @@ do_measurment_update = true;
 compute_mse = true;
 
 simulate_anomalies = false;
-do_chi_sq_test = false;
+do_chi_sq_test = true;
 do_cusum_test = false;
 
 do_plots = true;
 if do_plots
-    plot_true_database = true;
-    all_states = true;
+    plot_true_database = false;
+    all_states = false;
     only_Gpd = true;
     plot_anomalies = true;
-    plot_complete_history = true;
+    plot_complete_history = false;
     show_confidence_interval = true;
 end
 
 %% Load data
 disp('Loading dataset...')
 if ~use_true_patient
-    filename = "/Users/giovannicherubini/Desktop/Thesis/Code/data/1minsample/adult#001_6.csv";
+    filename = "/Users/giovannicherubini/Desktop/Thesis/Code/data/1minsample/adult#001_5.csv";
     tools = utils(filename, state_fields, extra_state_fields, input_fields, true_input_fields);
     patientData.CGM.values = tools.CGMs;
     patientData.CGM.time = tools.Time;
@@ -102,7 +102,7 @@ end
 % 1000 1000 is good for true patient
 % 25 160 is good for simulated patient
 
-high_uncertainty = 1000;
+high_uncertainty = 30;
 Q = diag([10,10,10,high_uncertainty,high_uncertainty,high_uncertainty,0,0,0,0,0,0,0]);    % TBD
 % Q = eye(length(state_fields)) * high_uncertainty;
 R = 1000;  % TBD
@@ -172,6 +172,7 @@ while t <= t_end
         end
                     
         if new_measurement_detected && do_measurment_update
+            ekf = ekf.update_sensor_cov(z_k);
             [xm_k, Pm_k, residual_k, innov_cov_k] = ekf.measurement_update(xp_k,Pp_k,z_k);
             residuals(end+1) = residual_k;
             if do_chi_sq_test || do_cusum_test
@@ -278,9 +279,8 @@ function next_t = next_step(t, patientData)
     idx_Meal = find(patientData.Meal.time > t);
 
     next_t = min([min(patientData.CGM.time(idx_CGM)), min(patientData.Meal.time(idx_Meal)), min(patientData.IIR.time(idx_IIR))]);
-    
+
     if isempty(next_t)
         next_t = t + seconds(1);
     end
-
 end

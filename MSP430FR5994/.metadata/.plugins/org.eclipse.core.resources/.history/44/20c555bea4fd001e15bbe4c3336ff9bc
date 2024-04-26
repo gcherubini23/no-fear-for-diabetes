@@ -1,6 +1,0 @@
-void arrayScalarMultiply(float* vec, int length, float scalar);
-void arrayAddInPlace(float* vec1, const float* vec2, int length);
-void matrixAddInPlace(float** A, const float** B, int rows, int cols);
-int matrixMultiply(const float** A, int rowsA, int colsA, const float** B, int rowsB, int colsB, float** RES);
-void euler_solve(float x[STATE_SPACE], const float u[INPUT_SPACE], float y[EXTRA_STATE_SPACE], float v[MODEL_INPUT_SPACE], float dt);
-

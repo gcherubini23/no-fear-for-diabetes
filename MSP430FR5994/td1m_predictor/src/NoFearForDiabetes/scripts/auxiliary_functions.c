@@ -10,11 +10,12 @@
 bool sample_measurement(float* z) {
     *z = 110;
     return TRUE;
+//    return FALSE;
 }
 
 bool sample_input(float* u) {
     u[CHO] = 0;
     u[IIR] = 0;
 //    return TRUE;
-    return FALSE;
+    return TRUE;
 }

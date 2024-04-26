@@ -20,6 +20,8 @@ classdef ekf
     v_history = [];
     t_history = [];
 
+    CGM_MARD = 15;
+
     end
 
     methods
@@ -48,7 +50,8 @@ classdef ekf
             obj.K = Pp * transpose(obj.H) * innovation_covariance^(-1);
             residual = z - obj.H * vec_xp;
             vec_xm = vec_xp + obj.K * residual;
-            Pm = (eye(length(vec_xp)) - obj.K * obj.H) * Pp * transpose(eye(length(vec_xp)) - obj.K * obj.H) + obj.K * obj.R * transpose(obj.K);
+            KRK = obj.K * obj.R * transpose(obj.K);
+            Pm = (eye(length(vec_xp)) - obj.K * obj.H) * Pp * transpose(eye(length(vec_xp)) - obj.K * obj.H) + KRK;
             xm = obj.tools.convert_to_struct(vec_xm);
         end
 
@@ -127,6 +130,10 @@ classdef ekf
             y_horizon_minus1 = y;
             v_horizon_minus1 = v;
 
+        end
+
+        function obj = update_sensor_cov(obj, z)
+            obj.R = (obj.CGM_MARD / 100 * z) * (obj.CGM_MARD / 100 * z);
         end
 
     end

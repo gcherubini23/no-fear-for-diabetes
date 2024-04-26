@@ -8,6 +8,7 @@
 #include "config.h"
 
 
+//#pragma CODE_SECTION(arrayScalarMultiply, ".ramfunc")
 void arrayScalarMultiply(float* vec, int length, float scalar) {
     int i;
     for (i = 0; i < length; i++) {
@@ -15,6 +16,7 @@ void arrayScalarMultiply(float* vec, int length, float scalar) {
         }
     }
 
+//#pragma CODE_SECTION(arrayAddInPlace, ".ramfunc")
 void arrayAddInPlace(float* vec1, const float* vec2, int length, bool make_non_negative) {
     int i;
     for (i = 0; i < length; i++) {
@@ -25,6 +27,7 @@ void arrayAddInPlace(float* vec1, const float* vec2, int length, bool make_non_n
             }
 }
 
+//#pragma CODE_SECTION(arrayMultiply, ".ramfunc")
 float arrayMultiply(const float* vec1, const float* vec2, int length) {
     int i;
     float sum = 0;
@@ -34,6 +37,7 @@ float arrayMultiply(const float* vec1, const float* vec2, int length) {
     return sum;
 }
 
+//#pragma CODE_SECTION(SquareMatrixTranspose, ".ramfunc")
 void SquareMatrixTranspose(float A[STATE_SPACE][STATE_SPACE], float At[STATE_SPACE][STATE_SPACE]) {
     int i,j;
     for(i = 0; i < STATE_SPACE; i++) {
@@ -43,6 +47,7 @@ void SquareMatrixTranspose(float A[STATE_SPACE][STATE_SPACE], float At[STATE_SPA
     }
 }
 
+//#pragma CODE_SECTION(SquareMatrixMultiply, ".ramfunc")
 void SquareMatrixMultiply(float A[STATE_SPACE][STATE_SPACE], float B[STATE_SPACE][STATE_SPACE], float RES[STATE_SPACE][STATE_SPACE]) {
     int i, j, k;
     for (i = 0; i < STATE_SPACE; i++) {
@@ -55,6 +60,7 @@ void SquareMatrixMultiply(float A[STATE_SPACE][STATE_SPACE], float B[STATE_SPACE
     }
 }
 
+//#pragma CODE_SECTION(SquareMatrixAdd, ".ramfunc")
 void SquareMatrixAdd(float A[STATE_SPACE][STATE_SPACE], float B[STATE_SPACE][STATE_SPACE]) {
     int i,j;
     for(i = 0; i < STATE_SPACE; i++) {
@@ -64,6 +70,7 @@ void SquareMatrixAdd(float A[STATE_SPACE][STATE_SPACE], float B[STATE_SPACE][STA
     }
 }
 
+//#pragma CODE_SECTION(SquareMatrixDiff, ".ramfunc")
 void SquareMatrixDiff(float A[STATE_SPACE][STATE_SPACE], float B[STATE_SPACE][STATE_SPACE]) {
     int i,j;
     for(i = 0; i < STATE_SPACE; i++) {
@@ -73,6 +80,7 @@ void SquareMatrixDiff(float A[STATE_SPACE][STATE_SPACE], float B[STATE_SPACE][ST
     }
 }
 
+//#pragma CODE_SECTION(ArrayMatrixMultiply, ".ramfunc")
 void ArrayMatrixMultiply(float vec[STATE_SPACE], float A[STATE_SPACE][STATE_SPACE], float res[STATE_SPACE], bool left) {
     float val;
     int i, j;
@@ -89,6 +97,7 @@ void ArrayMatrixMultiply(float vec[STATE_SPACE], float A[STATE_SPACE][STATE_SPAC
     }
 }
 
+//#pragma CODE_SECTION(euler_solve, ".ramfunc")
 void euler_solve(float x[STATE_SPACE], const float u[INPUT_SPACE], float y[EXTRA_STATE_SPACE], float v[MODEL_INPUT_SPACE], float dt, const float params[NUM_PARAMS]) {
     preprocess(x, u, y, v, dt);
     float dx_dt[STATE_SPACE];
