@@ -1,16 +1,16 @@
-classdef patient_00
+classdef patient_17
     properties
         % Patient features
-        BW = 102.32; % body weight [kg]
+        BW = 95; % body weight [kg]
         eat_rate = 5; % [g/min]
         
         % To be set by physician
         basal;
-        u2ss = 1.2386244136; % steady state (basal) insulin rate (IIRb)
+        u2ss; % steady state insulin rate (IIRb)
         % u2ss;      
         
         % To be measured at basal state
-        Gb = 138.56;
+        Gb = 101.56;
         
         % Sensor features
         Td = 10; % glucose sensor delay
@@ -37,11 +37,6 @@ classdef patient_00
         kmin = 0.0080;
         kabs = 0.0570;
         kgri;
-
-        % kmax = 0.046122;
-        % kmin = 0.0037927;
-        % kabs = 0.08906;
-
         f = 0.9;
         b = 0.82;
         d = 0.010;
@@ -49,7 +44,7 @@ classdef patient_00
         kp1 = 2.70;
         kp2 = 0.0021;
         kp3 = 0.009;
-        ki = 0.0079;
+        ki = 0.01;
         EGPb;
         % Utilization
         Fcns = 1;
@@ -70,11 +65,9 @@ classdef patient_00
     end
 
     methods
-        function obj = patient_00(basal)
-            % obj.basal = basal;
-            % obj.u2ss = basal * 6000 / obj.BW;
-
-            obj.basal = obj.u2ss * obj.BW / 6000;
+        function obj = patient_17(dailyBasal)
+            obj.basal = dailyBasal / 1440;
+            obj.u2ss = obj.basal * 6000 / obj.BW;
 
             obj.m30 = obj.m1 * obj.HEb / (1 - obj.HEb);
             obj.CL = 0.0242 * obj.BW;
@@ -118,7 +111,7 @@ classdef patient_00
                 if isprop(obj, fieldName) 
                     obj.(fieldName) = p(i); 
                 else
-                    warning('Property %s does not exist in patient_00.', fieldName);
+                    warning('Property %s does not exist in patient_11.', fieldName);
                 end
             end
 

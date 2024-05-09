@@ -1,16 +1,15 @@
-classdef patient_00
+classdef patient_1010
     properties
         % Patient features
-        BW = 102.32; % body weight [kg]
+        BW = 35; % body weight [kg]
         eat_rate = 5; % [g/min]
         
         % To be set by physician
         basal;
-        u2ss = 1.2386244136; % steady state (basal) insulin rate (IIRb)
-        % u2ss;      
+        u2ss = 0.01875; % steady state insulin rate (IIRb)    
         
         % To be measured at basal state
-        Gb = 138.56;
+        Gb = 117.6;
         
         % Sensor features
         Td = 10; % glucose sensor delay
@@ -37,11 +36,6 @@ classdef patient_00
         kmin = 0.0080;
         kabs = 0.0570;
         kgri;
-
-        % kmax = 0.046122;
-        % kmin = 0.0037927;
-        % kabs = 0.08906;
-
         f = 0.9;
         b = 0.82;
         d = 0.010;
@@ -49,7 +43,7 @@ classdef patient_00
         kp1 = 2.70;
         kp2 = 0.0021;
         kp3 = 0.009;
-        ki = 0.0079;
+        ki = 0.01;
         EGPb;
         % Utilization
         Fcns = 1;
@@ -70,21 +64,21 @@ classdef patient_00
     end
 
     methods
-        function obj = patient_00(basal)
-            % obj.basal = basal;
-            % obj.u2ss = basal * 6000 / obj.BW;
-
-            obj.basal = obj.u2ss * obj.BW / 6000;
-
+        function obj = patient_1010()
             obj.m30 = obj.m1 * obj.HEb / (1 - obj.HEb);
             obj.CL = 0.0242 * obj.BW;
             obj.m2 = 3/5 * obj.CL / (obj.HEb * obj.VI * obj.BW);
             obj.m4 = 2/5 * obj.CL / (obj.VI * obj.BW);
             obj.Ipb = obj.u2ss / (obj.m2 + obj.m4 - obj.m1 * obj.m2 / (obj.m1 + obj.m30));  % basal insulin in plasma
-            obj.Ilb = obj.m2 / (obj.m1 + obj.m30) * obj.Ipb;
-            obj.Ib = obj.Ipb / obj.VI;
             obj.kgri = obj.kmax;
+
+            obj.Ib = obj.Ipb / obj.VI;
+            obj.Ipb = obj.Ib * obj.VI;
+            obj.Ilb = obj.m2 / (obj.m1 + obj.m30) * obj.Ipb;
+            % obj.u2ss = obj.Ipb * (obj.m2 + obj.m4 - obj.m1 * obj.m2 / (obj.m1 + obj.m30));
+            
             obj.Gpb = obj.Gb * obj.VG; % basal glucose in plasma
+
             obj.EGPb = obj.kp1 - obj.kp2 * obj.Gpb - obj.kp3 * obj.Ib;
             obj.Gtb = 1 / obj.k2 * (obj.Fcns - obj.EGPb + obj.k1 * obj.Gpb);
             obj.Vm0 = (obj.EGPb - obj.Fcns) * (obj.Km0 + obj.Gtb) / obj.Gtb;
@@ -99,10 +93,15 @@ classdef patient_00
             obj.m2 = 3/5 * obj.CL / (obj.HEb * obj.VI * obj.BW);
             obj.m4 = 2/5 * obj.CL / (obj.VI * obj.BW);
             obj.Ipb = obj.u2ss / (obj.m2 + obj.m4 - obj.m1 * obj.m2 / (obj.m1 + obj.m30));  % basal insulin in plasma
-            obj.Ilb = obj.m2 / (obj.m1 + obj.m30) * obj.Ipb;
-            obj.Ib = obj.Ipb / obj.VI;
             obj.kgri = obj.kmax;
+
+            obj.Ib = obj.Ipb / obj.VI;
+            obj.Ipb = obj.Ib * obj.VI;
+            obj.Ilb = obj.m2 / (obj.m1 + obj.m30) * obj.Ipb;
+            % obj.u2ss = obj.Ipb * (obj.m2 + obj.m4 - obj.m1 * obj.m2 / (obj.m1 + obj.m30));
+            
             obj.Gpb = obj.Gb * obj.VG; % basal glucose in plasma
+
             obj.EGPb = obj.kp1 - obj.kp2 * obj.Gpb - obj.kp3 * obj.Ib;
             obj.Gtb = 1 / obj.k2 * (obj.Fcns - obj.EGPb + obj.k1 * obj.Gpb);
             obj.Vm0 = (obj.EGPb - obj.Fcns) * (obj.Km0 + obj.Gtb) / obj.Gtb;
@@ -118,7 +117,7 @@ classdef patient_00
                 if isprop(obj, fieldName) 
                     obj.(fieldName) = p(i); 
                 else
-                    warning('Property %s does not exist in patient_00.', fieldName);
+                    warning('Property %s does not exist in patient_11.', fieldName);
                 end
             end
 

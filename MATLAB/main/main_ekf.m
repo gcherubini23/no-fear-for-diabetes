@@ -2,111 +2,23 @@ close all
 clear
 clc
 
-%% Config
-state_fields = {'Qsto1','Qsto2','Qgut','Gp','Gt','Gpd','Il','Ip','I1','Id','X','Isc1','Isc2'};
-extra_state_fields = {'insulin_to_infuse','last_IIR','CHO_to_eat','D','lastQsto','is_eating'}; 
-input_fields = {'CHO', 'IIR'};
-true_input_fields = {'CHO_consumed_rate','IIR_dt'};
+rng default;
 
-use_true_patient = false;
-use_tuned_model = true;
-use_true_model = false;
-
-if use_true_patient
-    use_anderson = true;
-    use_tmoore = false;
-    if use_anderson
-        patient_ID = 11;
-        dailyBasal = 18;
-        date = '11-Feb-2013 06:30:00';
-        % date = '26-Jan-2013 06:30:00';
-        % date = '28-Jan-2013 06:30:00';
-
-        days_to_examine = 2;
-        % days_to_examine = 30;
-        % days_to_examine = 'all';
-    end
-
-    if use_tmoore
-        patient_ID = -1;
-        dailyBasal = 10;
-        date = '20-Jan-2022 00:00:00';
-
-        days_to_examine = 2;
-        % days_to_examine = 30;
-        % days_to_examine = 'all';
-
-    end
-
-    start_day = datetime(date,'InputFormat', 'dd-MMM-yyyy HH:mm:ss');
-end
-
-use_known_init_conditions = true;
-do_measurment_update = true;
-compute_mse = true;
-
-simulate_anomalies = false;
-do_chi_sq_test = true;
-do_cusum_test = false;
-
-do_plots = true;
-if do_plots
-    plot_true_database = false;
-    all_states = false;
-    only_Gpd = true;
-    plot_anomalies = true;
-    plot_complete_history = false;
-    show_confidence_interval = true;
-end
-
-%% Load data
-disp('Loading dataset...')
-if ~use_true_patient
-    filename = "/Users/giovannicherubini/Desktop/Thesis/Code/data/1minsample/adult#001_5.csv";
-    tools = utils(filename, state_fields, extra_state_fields, input_fields, true_input_fields);
-    patientData.CGM.values = tools.CGMs;
-    patientData.CGM.time = tools.Time;
-    patientData.Meal.values = tools.CHOs;
-    patientData.Meal.time = tools.Time;
-    patientData.IIR.values = tools.IIRs;
-    patientData.IIR.time = tools.Time;
-    patientData.BG.values = tools.BGs;
-    patientData.BG.time = tools.Time;
-else
-    filename = "none";
-    tools = utils(filename, state_fields, extra_state_fields, input_fields, true_input_fields);
-    run('database_preprocessor.m')
-end
-
-disp('Dataset loaded')
-
-%% Create virtual patient
-if ~use_true_patient
-    basal = tools.IIRs(1);
-    if use_true_model
-        params = patient_01(basal);
-    else
-        params = patient_00(basal);
-    end
-else
-    basal = 0;
-    params = patient_11(dailyBasal);
-    % params = patient_11b(dailyBasal);
-end
+%% Initialization
+run('config.m')
 
 if use_tuned_model
     run('param_model.m')
 end
 
-%% Initialization
 % 1000 1000 is good for true patient
 % 25 160 is good for simulated patient
 
-high_uncertainty = 30;
+high_uncertainty = 1000;
 Q = diag([10,10,10,high_uncertainty,high_uncertainty,high_uncertainty,0,0,0,0,0,0,0]);    % TBD
 % Q = eye(length(state_fields)) * high_uncertainty;
 R = 1000;  % TBD
-ekf_dt = 1; % [min]
+ekf_dt = 2; % [min]
 
 % if simulate_anomalies
 %     run('error_gen.m')
@@ -117,24 +29,24 @@ lin_model = linearized_model(tools);
 ekf = ekf(model, lin_model, tools, params, ekf_dt, Q, R);
 ekf.dt = ekf_dt;
 
-alpha = 0.1;
+alpha = 0.05;
 anomaly_detector = anomaly_detector(alpha);
 
-if use_known_init_conditions
+if use_basal_init_conditions
     [x0, y_minus1] = tools.init_conditions(params);
     u0.CHO = 0;
     u0.IIR = 0;
 else
-    [x0, y_minus1] = tools.rand_conditions(params);
+    [x0, y_minus1] = tools.set_init_conditions(patientData.CGM.values(1), params);
     u0.CHO = 0;
     u0.IIR = 0;
 end
 
-t_start = min([min(patientData.CGM.time), min(patientData.Meal.time), min(patientData.IIR.time)]);
-t_end = max([max(patientData.CGM.time), max(patientData.Meal.time), max(patientData.IIR.time)]);
 EKF_state_tracking.mean = [];
 EKF_state_tracking.variance = [];
 EKF_state_tracking.time = datetime([], 'ConvertFrom', 'posixtime', 'Format', 'dd-MMM-yyyy HH:mm:ss');
+future_predictions.values = [];
+future_predictions.time = datetime([], 'ConvertFrom', 'posixtime', 'Format', 'dd-MMM-yyyy HH:mm:ss');
 residuals = [];
 
 t = t_start;
@@ -146,8 +58,10 @@ P = Q * 3;
 
 %% Start simulation
 % profile on
+
 flag = true;
 disp('Starting simulation...')
+horizon = 45;
 while t <= t_end
 
     [z_k, new_measurement_detected] = sample_measurement(t, patientData);
@@ -157,9 +71,9 @@ while t <= t_end
 
         dt = convert_to_minutes(t - last_process_update);
         if plot_complete_history
-            [xp_k, Pp_k, y_kminus1, v_kminus1, ekf] = ekf.predict_and_save(x, y, u, P, dt, params, last_process_update);
+            [xp_k, Pp_k, y_kminus1, v_kminus1, ekf] = ekf.predict_and_save(x, y, u, P, dt, params, last_process_update, true);
         else
-            [xp_k, Pp_k, y_kminus1, v_kminus1] = ekf.predict(x, y, u, P, dt, params);
+            [xp_k, Pp_k, y_kminus1, v_kminus1] = ekf.predict(x, y, u, P, dt, params, true);
         end
         x_current = xp_k;
         P_current = Pp_k;
@@ -172,7 +86,7 @@ while t <= t_end
         end
                     
         if new_measurement_detected && do_measurment_update
-            ekf = ekf.update_sensor_cov(z_k);
+            % ekf = ekf.update_sensor_cov(z_k);
             [xm_k, Pm_k, residual_k, innov_cov_k] = ekf.measurement_update(xp_k,Pp_k,z_k);
             residuals(end+1) = residual_k;
             if do_chi_sq_test || do_cusum_test
@@ -206,6 +120,10 @@ while t <= t_end
             % EKF_state_tracking.variance(:,:,end+1) = P;
             EKF_state_tracking.variance(end+1) = P(6,6);
             EKF_state_tracking.time(end+1, :) = t;
+
+            [temp,~,~,~] = ekf.predict(x, y, u, P, horizon, params, false);
+            future_predictions.values(end+1) = temp.Gpd;
+            future_predictions.time(end+1,:) = t + minutes(horizon);
         end
 
     end
@@ -218,7 +136,7 @@ end
 
 if compute_mse
     if ~use_true_patient
-        mse = mean((transpose(patientData.BG.values) - EKF_state_tracking.mean(6, :)/params.VG).^2)
+        mse = mean((transpose(patientData.BG.values) - EKF_state_tracking.mean(6, :)/params.VG).^2);
         rmse = mse^(1/2)
     else
         mse = 0;
@@ -227,60 +145,16 @@ if compute_mse
             idx = find(EKF_state_tracking.time == t);
             mse = mse + (patientData.CGM.values(i) - EKF_state_tracking.mean(6,idx)/params.VG)^2;
         end
-        mse = mse / length(patientData.CGM.values)
+        mse = mse / length(patientData.CGM.values);
         rmse = mse^(1/2)
     end
 end
-
-disp("Done");
 
 %% Plot
 
 if do_plots
     run('plotting.m');
+    [total, percentage] = clarke(patientData.CGM.values',EKF_state_tracking.mean(6,:)/params.VG)
 end
 
-%% Extra functions
-
-function [z_k, new_measurement_detected] = sample_measurement(t, patientData)
-    z_k = [];
-    [new_measurement_detected, idx] = ismember(t, patientData.CGM.time);
-    if new_measurement_detected
-        z_k = patientData.CGM.values(idx);
-    end
-end
-
-function [u_k, new_input_detected] = sample_input(t, patientData)
-    u_k.CHO = 0;
-    u_k.IIR = 0;
-    [new_meal_detected, idx1] = ismember(t, patientData.Meal.time);
-    [new_IIR_detected, idx2] = ismember(t, patientData.IIR.time);
-    if new_meal_detected
-        u_k.CHO = patientData.Meal.values(idx1);
-    end
-    if new_IIR_detected
-        u_k.IIR = patientData.IIR.values(idx2);
-    end
-    if new_meal_detected || new_IIR_detected
-        new_input_detected = true;
-    else
-        new_input_detected = false;
-    end
-end
-
-function dt = convert_to_minutes(duration)
-    [hours, minutes, seconds] = hms(duration);
-    dt = hours * 60 + minutes + seconds / 60;
-end
-
-function next_t = next_step(t, patientData)
-    idx_CGM = find(patientData.CGM.time > t);
-    idx_IIR = find(patientData.IIR.time > t);
-    idx_Meal = find(patientData.Meal.time > t);
-
-    next_t = min([min(patientData.CGM.time(idx_CGM)), min(patientData.Meal.time(idx_Meal)), min(patientData.IIR.time(idx_IIR))]);
-
-    if isempty(next_t)
-        next_t = t + seconds(1);
-    end
-end
+disp("Done");

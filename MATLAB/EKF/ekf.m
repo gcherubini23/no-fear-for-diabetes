@@ -20,7 +20,7 @@ classdef ekf
     v_history = [];
     t_history = [];
 
-    CGM_MARD = 15;
+    CGM_MARD = 20;
 
     end
 
@@ -37,17 +37,21 @@ classdef ekf
             obj.H = [0,0,0,0,0,1/params.VG,0,0,0,0,0,0,0];
         end      
         
-        function [xp_k, Pp_k, y_kminus1, v_kminus1] = process_update(obj, x_kminus1, y_kminus2, u_kminus1, P_kminus1, dt, params)         
+        function [xp_k, Pp_k, y_kminus1, v_kminus1] = process_update(obj, x_kminus1, y_kminus2, u_kminus1, P_kminus1, dt, params, update_P)         
             % Euler
             [xp_k, y_kminus1, v_kminus1] = obj.tools.euler_solve(obj.model,params,x_kminus1,y_kminus2,u_kminus1,dt);
-            obj.lin_model = obj.lin_model.linearize(x_kminus1,y_kminus1,params);
-            Pp_k = obj.lin_model.A * P_kminus1 * transpose(obj.lin_model.A) + obj.Q;
+            if update_P
+                obj.lin_model = obj.lin_model.linearize(x_kminus1,y_kminus1,params);
+                Pp_k = obj.lin_model.A * P_kminus1 * transpose(obj.lin_model.A) + obj.Q;
+            else
+                Pp_k = P_kminus1;
+            end
         end
 
         function [xm, Pm, residual, innovation_covariance] = measurement_update(obj, xp, Pp, z)
             vec_xp = obj.tools.convert_to_vector(xp);
             innovation_covariance = obj.H * Pp * transpose(obj.H) + obj.R;
-            obj.K = Pp * transpose(obj.H) * innovation_covariance^(-1);
+            obj.K = Pp * transpose(obj.H) * (innovation_covariance + 1e-8)^(-1);
             residual = z - obj.H * vec_xp;
             vec_xm = vec_xp + obj.K * residual;
             KRK = obj.K * obj.R * transpose(obj.K);
@@ -55,7 +59,7 @@ classdef ekf
             xm = obj.tools.convert_to_struct(vec_xm);
         end
 
-        function [x_horizon, P_horizon, y_horizon_minus1, v_horizon_minus1] = predict(obj, x_k, y_kminus1, u_k, P_k, horizon, params)
+        function [x_horizon, P_horizon, y_horizon_minus1, v_horizon_minus1] = predict(obj, x_k, y_kminus1, u_k, P_k, horizon, params, update_P)
             t = 0;
             x = x_k;
             y = y_kminus1;
@@ -66,7 +70,7 @@ classdef ekf
 
             while t < horizon
                 step_dt = min(obj.dt, horizon - t);             
-                [x_new, P_new, y_new, v_new] = obj.process_update(x,y,u,P,step_dt,params);
+                [x_new, P_new, y_new, v_new] = obj.process_update(x,y,u,P,step_dt,params,update_P);
                 x = x_new;
                 P = P_new;
                 y = y_new;
@@ -85,7 +89,7 @@ classdef ekf
 
         end
 
-        function [x_horizon, P_horizon, y_horizon_minus1, v_horizon_minus1, obj] = predict_and_save(obj, x_k, y_kminus1, u_k, P_k, horizon, params, t0)
+        function [x_horizon, P_horizon, y_horizon_minus1, v_horizon_minus1, obj] = predict_and_save(obj, x_k, y_kminus1, u_k, P_k, horizon, params, t0, update_P)
             t = 0;
             x = x_k;
             y = y_kminus1;
@@ -99,7 +103,7 @@ classdef ekf
             while t < horizon
 
                 step_dt = min(obj.dt, horizon - t);             
-                [x_new, P_new, y_new, v_new] = obj.process_update(x,y,u,P,step_dt,params);
+                [x_new, P_new, y_new, v_new] = obj.process_update(x,y,u,P,step_dt,params,update_P);
                
                 x = x_new;
                 P = P_new;

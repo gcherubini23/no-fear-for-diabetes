@@ -36,22 +36,22 @@ classdef utils
             y_minus1.is_eating = false;
         end
 
-        function [x0, y_minus1] = rand_conditions(params)
-            t = 0.6;
+        function [x0, y_minus1] = set_init_conditions(z, params)
             x0.Qsto1 = 0;
             x0.Qsto2 = 0;
             x0.Qgut = 0;
-            x0.Gp = params.Gpb*t;
-            x0.Gt = params.Gtb*t;
-            x0.Gpd = params.Gpb*t;
-            x0.Il = params.Ilb*t;
-            x0.Ip = params.Ipb*t;
-            x0.I1 = params.Ib*t;
-            x0.Id = params.Ib*t;
+            x0.Gp = z * params.VG;
+            % x0.Gt = 1 / params.k2 * (params.Fcns - params.EGPb + params.k1 * x0.Gp);
+            x0.Gt = (-params.Vm0 + params.k1 * x0.Gp * params.Km0) / (params.k2 * params.Km0);
+            x0.Gpd = z * params.VG;
+            x0.Il = params.Ilb;
+            x0.Ip = params.Ipb;
+            x0.I1 = params.Ib;
+            x0.Id = params.Ib;
             x0.X = 0;
-            x0.Isc1 = params.Isc1ss*t;
-            x0.Isc2 = params.Isc2ss*t;
-
+            x0.Isc1 = params.Isc1ss;
+            x0.Isc2 = params.Isc2ss;
+          
             y_minus1.insulin_to_infuse = 0;
             y_minus1.last_IIR = 0;
             y_minus1.CHO_to_eat = 0;

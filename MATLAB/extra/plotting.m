@@ -22,7 +22,7 @@ if all_states
     xlim([t_start t_end]);
     subplot(7,2,9);
     plot(EKF_state_tracking.time, EKF_state_tracking.mean(6,:), 'r-');
-    ylabel('Gsc [mg/kg]');
+    ylabel('Gsc [mg/dl]');
     xlim([t_start t_end]);
 
     subplot(7,2,11);
@@ -95,6 +95,12 @@ if only_Gpd
     if plot_anomalies
         plot(anomaly_detector.time, anomaly_detector.anomalies, 'o','DisplayName', 'Anomalies', 'Color', [1 0 0], 'MarkerSize', 4)
         hold on 
+    end
+
+
+    if show_future_predictions
+        plot(future_predictions.time, future_predictions.values/params.VG, 'x', 'DisplayName', 'EKF 30min', 'LineWidth', 1, 'Color', "#77AC30")
+        hold on
     end
     
     legend show;

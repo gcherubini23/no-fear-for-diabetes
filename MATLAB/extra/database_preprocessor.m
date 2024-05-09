@@ -68,6 +68,24 @@ if use_tmoore
 
 end
     
+if use_shanghai
+    folder_path = '/Users/giovannicherubini/Desktop/Thesis/Code/data/ShanghaiDataset/processed_data';
+
+    file = strcat(folder_path, '/', string(filename));
+
+    database = readtable(file);
+    
+    idx = extract_idx(database, patient_ID, start_day, days_to_examine);
+    patientData.CGM.time = database.Time(idx);
+    patientData.CGM.values = database.CGM(idx);
+    
+    patientData.IIR.time = database.Time(idx);
+    patientData.IIR.values = database.Insulin(idx);
+    
+    patientData.Meal.time = database.Time(idx);
+    patientData.Meal.values = database.CHO(idx);
+    
+end
 
 
 if plot_true_database
@@ -77,14 +95,20 @@ if plot_true_database
 
     figure;
 
-    subplot(2,1,1)
+    if use_anderson
+        tot = 3;
+    else
+        tot = 2;
+    end
+
+    subplot(tot,1,1)
     plot(patientData.CGM.time, patientData.CGM.values, '-o', 'DisplayName', 'CGM', 'Color', 'cyan', 'MarkerSize', 4);
     xlabel('Time');
     xlim([t_start t_end]);
     legend show
     grid on
 
-    subplot(2,1,2)
+    subplot(tot,1,2)
     % stem(patientData.Insulin.time, patientData.Insulin.values, 'o', 'Color', 'r', 'DisplayName', 'Insulin');
     stem(patientData.IIR.time, patientData.IIR.values, 'o', 'Color', 'r', 'DisplayName', 'Insulin');
     hold on
@@ -94,12 +118,14 @@ if plot_true_database
     legend show
     grid on
 
-    % subplot(3,1,3)
-    % plot(patientData.System.time, patientData.System.DiAsState, '.', 'Color', 'm', 'DisplayName', 'Operational mode');
-    % xlabel('Time');
-    % xlim([t_start t_end]);
-    % legend show
-    % grid on
+    if use_anderson
+        subplot(tot,1,tot)
+        plot(patientData.System.time, patientData.System.DiAsState, '.', 'Color', 'm', 'DisplayName', 'Operational mode');
+        xlabel('Time');
+        xlim([t_start t_end]);
+        legend show
+        grid on
+    end
     
     set(gcf, 'Position', get(0, 'Screensize'));
     
@@ -107,7 +133,7 @@ end
 
 function idx = extract_idx(database, patient_ID, start_day, days_to_examine)
     
-    if patient_ID > 0
+    if patient_ID > 0 && patient_ID < 700
         if ~strcmp(string(days_to_examine), 'all')
             idx = database.DeidentID == patient_ID & ...
                   database.Time >= start_day & ...
