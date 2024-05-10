@@ -1,10 +1,6 @@
 classdef utils
     
     properties
-        state_fields;
-        extra_state_fields; 
-        input_fields;
-        true_input_fields;
         CGMs;
         IIRs;
         CHOs;
@@ -14,94 +10,26 @@ classdef utils
 
     methods(Static)         
         function [x0, y_minus1] = init_conditions(params)
-            x0.Qsto1 = 0;
-            x0.Qsto2 = 0;
-            x0.Qgut = 0;
-            x0.Gp = params.Gpb;
-            x0.Gt = params.Gtb;
-            x0.Gpd = params.Gpb;
-            x0.Il = params.Ilb;
-            x0.Ip = params.Ipb;
-            x0.I1 = params.Ib;
-            x0.Id = params.Ib;
-            x0.X = 0;
-            x0.Isc1 = params.Isc1ss;
-            x0.Isc2 = params.Isc2ss;
-
-            y_minus1.insulin_to_infuse = 0;
-            y_minus1.last_IIR = 0;
-            y_minus1.CHO_to_eat = 0;
-            y_minus1.D = 0;
-            y_minus1.lastQsto = 0;
-            y_minus1.is_eating = false;
+            x0 = [0,0,0,params.Gpb,params.Gtb,params.Gpb,params.Ilb,params.Ipb,params.Ib,params.Ib,0,params.Isc1ss,params.Isc2ss];
+            y_minus1 = [0,0,0,0,0,false];
         end
 
         function [x0, y_minus1] = set_init_conditions(z, params)
-            x0.Qsto1 = 0;
-            x0.Qsto2 = 0;
-            x0.Qgut = 0;
-            x0.Gp = z * params.VG;
-            % x0.Gt = 1 / params.k2 * (params.Fcns - params.EGPb + params.k1 * x0.Gp);
-            x0.Gt = (-params.Vm0 + params.k1 * x0.Gp * params.Km0) / (params.k2 * params.Km0);
-            x0.Gpd = z * params.VG;
-            x0.Il = params.Ilb;
-            x0.Ip = params.Ipb;
-            x0.I1 = params.Ib;
-            x0.Id = params.Ib;
-            x0.X = 0;
-            x0.Isc1 = params.Isc1ss;
-            x0.Isc2 = params.Isc2ss;
-          
-            y_minus1.insulin_to_infuse = 0;
-            y_minus1.last_IIR = 0;
-            y_minus1.CHO_to_eat = 0;
-            y_minus1.D = 0;
-            y_minus1.lastQsto = 0;
-            y_minus1.is_eating = false;
+            Gp = z * params.VG;
+            Gt = (-params.Vm0 + params.k1 * Gp * params.Km0) / (params.k2 * params.Km0);
+            x0 = [0,0,0,Gp,Gt,Gp,params.Ilb,params.Ipb,params.Ib,params.Ib,0,params.Isc1ss,params.Isc2ss];
+            y_minus1 = [0,0,0,0,0,false];
         end
 
     end
 
     methods
-        function obj = utils(filename, state_fields, extra_state_fields, input_fields, true_input_fields)
+        function obj = utils(filename)
             if ~strcmp(filename, 'none')
                 obj = obj.read_file(filename);
             end
-            obj.state_fields = state_fields;
-            obj.extra_state_fields = extra_state_fields; 
-            obj.input_fields = input_fields;
-            obj.true_input_fields = true_input_fields;
         end
 
-        function vec = convert_to_vector(obj, s)
-            % Define field names based on the number of elements in the struct
-            if numel(fieldnames(s)) == 2
-                fields = obj.true_input_fields;
-            else
-                fields = obj.state_fields;
-            end
-            
-            % Convert struct elements to a vector
-            vec = zeros(length(fields), 1);
-            for i = 1:length(fields)
-                vec(i) = s.(fields{i});
-            end
-        end
-
-        function s = convert_to_struct(obj,vec)
-            % Define field names based on the length of the vector
-            if length(vec) == 2
-                fields = obj.true_input_fields;
-            else
-                fields = obj.state_fields;
-            end
-            
-            % Convert vector elements back to a struct
-            s = struct();
-            for i = 1:length(fields)
-                s.(fields{i}) = vec(i);
-            end
-        end
 
         function obj = read_file(obj, filename)
             dataTable = readtable(filename);
@@ -115,11 +43,8 @@ classdef utils
         function [x_next, y, v] = euler_solve(obj, model, params, x, y_old, u, dt)    
             [y, v] = model.preprocess(x,y_old,u,params,dt);
             dx_dt = model.step(x,y,v,params);
-            vec_x = obj.convert_to_vector(x);
-            vec_dx_dt = obj.convert_to_vector(dx_dt);
-            vec_x_next = vec_x + dt * vec_dx_dt;
-            vec_x_next = vec_x_next .* (vec_x_next >= 0);
-            x_next = obj.convert_to_struct(vec_x_next);
+            x_next = (x + dt * dx_dt);
+            x_next = x_next .* (x_next >= 0);
         end
 
         % function [x_next, y, v] = rk4_solve(obj, model, params, x, y_old, u, dt)
@@ -145,43 +70,43 @@ classdef utils
         %     v = v1;
         % end
 
-        function [x_next, y, v] = matlab_solve(obj, model, params, x0, y_old, u, t, dt)
-            
-            % This is the auxiliary function that ode45 will call.
-            % It needs to accept time t and state x, and return the derivative dxdt.
-            [y, v] = model.preprocess(x0, y_old, u, params, dt);
-            odeFunction = @(t, x) odeFunctionWrapper(t, x, obj, model, params, y, v);
-            
-            % Set up the time span for the ODE solver
-            tspan = [t, t+dt];
-            
-            % Call ode45
-            vec_x0 = obj.convert_to_vector(x0);
-            [t, x] = ode45(odeFunction, tspan, vec_x0);
-            
-            % The last state returned by ode45 will be at time dt, which is x(end,:)
-            x_next = obj.convert_to_struct(x(end,:)');
-            % pause
-            
-            % After the ODE solver, you may need to update y and v for the final state
-            
-
-        end
-
-        function dxdt = odeFunctionWrapper(t, x_vec, obj, model, params, y, v)
-            % Convert the vectorized state back into a struct
-            x = obj.convert_to_struct(x_vec);
-            
-            % Compute the derivative using the model's step function
-            dxdt = obj.convert_to_vector(model.step(x, y, v, params));
-
-        end
-
-        function x_new = struct_increment(obj, x, dx)
-            vec_x = obj.convert_to_vector(x);
-            vec_x_new = vec_x + dx;
-            x_new = obj.convert_to_struct(vec_x_new);
-        end
+        % function [x_next, y, v] = matlab_solve(obj, model, params, x0, y_old, u, t, dt)
+        % 
+        %     % This is the auxiliary function that ode45 will call.
+        %     % It needs to accept time t and state x, and return the derivative dxdt.
+        %     [y, v] = model.preprocess(x0, y_old, u, params, dt);
+        %     odeFunction = @(t, x) odeFunctionWrapper(t, x, obj, model, params, y, v);
+        % 
+        %     % Set up the time span for the ODE solver
+        %     tspan = [t, t+dt];
+        % 
+        %     % Call ode45
+        %     vec_x0 = obj.convert_to_vector(x0);
+        %     [t, x] = ode45(odeFunction, tspan, vec_x0);
+        % 
+        %     % The last state returned by ode45 will be at time dt, which is x(end,:)
+        %     x_next = obj.convert_to_struct(x(end,:)');
+        %     % pause
+        % 
+        %     % After the ODE solver, you may need to update y and v for the final state
+        % 
+        % 
+        % end
+        % 
+        % function dxdt = odeFunctionWrapper(t, x_vec, obj, model, params, y, v)
+        %     % Convert the vectorized state back into a struct
+        %     x = obj.convert_to_struct(x_vec);
+        % 
+        %     % Compute the derivative using the model's step function
+        %     dxdt = obj.convert_to_vector(model.step(x, y, v, params));
+        % 
+        % end
+        % 
+        % function x_new = struct_increment(obj, x, dx)
+        %     vec_x = obj.convert_to_vector(x);
+        %     vec_x_new = vec_x + dx;
+        %     x_new = obj.convert_to_struct(vec_x_new);
+        % end
 
     end
 

@@ -1,33 +1,34 @@
-state_fields = {'Qsto1','Qsto2','Qgut','Gp','Gt','Gpd','Il','Ip','I1','Id','X','Isc1','Isc2'};
-extra_state_fields = {'insulin_to_infuse','last_IIR','CHO_to_eat','D','lastQsto','is_eating'}; 
-input_fields = {'CHO', 'IIR'};
-true_input_fields = {'CHO_consumed_rate','IIR_dt'};
+% state_fields = {'Qsto1','Qsto2','Qgut','Gp','Gt','Gpd','Il','Ip','I1','Id','X','Isc1','Isc2'};
+% extra_state_fields = {'insulin_to_infuse','last_IIR','CHO_to_eat','D','lastQsto','is_eating'}; 
+% input_fields = {'CHO', 'IIR'};
+% true_input_fields = {'CHO_consumed_rate','IIR_dt'};
+
+indices;
 
 use_true_patient = true;
-use_tuned_model = false;
+use_tuned_model = true;
 
 if use_true_patient
-    use_anderson = false;
+    use_anderson = true;
     use_tmoore = false;
-    use_shanghai = true;
+    use_shanghai = false;
 
     if use_anderson
-        % patient_ID = 11;
-        % dailyBasal = 18;
-        % date = '11-Feb-2013 06:30:00';
-        % % date = '26-Jan-2013 06:30:00';
-        % % % date = '28-Jan-2013 06:30:00';
-        % 
-        % days_to_examine = 2;
-        % % days_to_examine = 30;
-        % % % days_to_examine = 'all';
-
-        patient_ID = 17;
-        % date = '20-Feb-2014 06:30:00';
-        date = '28-Jul-2013 12:18:22';
+        patient_ID = 11;
+        dailyBasal = 18;
+        date = '11-Feb-2013 06:30:00';
+        % date = '26-Jan-2013 06:30:00';
+        % % date = '28-Jan-2013 06:30:00';
         days_to_examine = 2;
+        % days_to_examine = 30;
         % days_to_examine = 'all';
-        dailyBasal = 21.5;
+
+        % patient_ID = 17;
+        % % date = '20-Feb-2014 06:30:00';
+        % date = '28-Jul-2013 12:18:22';
+        % days_to_examine = 2;
+        % % days_to_examine = 'all';
+        % dailyBasal = 21.5;
     end
 
     if use_tmoore
@@ -43,16 +44,16 @@ if use_true_patient
 
     if use_shanghai
 
-        % patient_ID = 1007;
-        % date = '27-Jul-2021 06:00:00';
-        % % date = '03-Aug-2021 09:00:00';
-        % days_to_examine = 2;
-        % % days_to_examine = 'all';
-         
-        patient_ID = 1002;
-        date = '09-Sep-2021 16:00:00';
+        patient_ID = 1007;
+        date = '27-Jul-2021 06:00:00';
+        % date = '03-Aug-2021 09:00:00';
         days_to_examine = 2;
         % days_to_examine = 'all';
+         
+        % patient_ID = 1002;
+        % date = '09-Sep-2021 16:00:00';
+        % days_to_examine = 2;
+        % % days_to_examine = 'all';
 
 
         % patient_ID = 1010;
@@ -74,22 +75,22 @@ if use_true_patient
     start_day = datetime(date,'InputFormat', 'dd-MMM-yyyy HH:mm:ss');
 end
 
-use_basal_init_conditions = false;
-do_measurment_update = false;
+use_basal_init_conditions = true;
+do_measurment_update = true;
 compute_mse = true;
 
-simulate_anomalies = false;
+simulate_anomalies = true;
 do_chi_sq_test = true;
 do_cusum_test = false;
 
 do_plots = true;
 if do_plots
-    plot_true_database = true;
-    all_states = true;
+    plot_true_database = false;
+    all_states = false;
     only_Gpd = true;
     plot_anomalies = true;
     plot_complete_history = false;
-    show_confidence_interval = false;
+    show_confidence_interval = true;
     show_future_predictions = true;
 end
 
@@ -97,7 +98,7 @@ end
 disp('Loading dataset...')
 if ~use_true_patient
     filename = "/Users/giovannicherubini/Desktop/Thesis/Code/data/1minsample/adult#001_5.csv";
-    tools = utils(filename, state_fields, extra_state_fields, input_fields, true_input_fields);
+    tools = utils(filename);
     patientData.CGM.values = tools.CGMs;
     patientData.CGM.time = tools.Time;
     patientData.Meal.values = tools.CHOs;
@@ -117,7 +118,7 @@ if ~use_true_patient
     end
 else
     
-    tools = utils("none", state_fields, extra_state_fields, input_fields, true_input_fields);
+    tools = utils("none");
     run('database_preprocessor.m')
 
     if patient_ID == 17

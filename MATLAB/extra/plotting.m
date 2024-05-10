@@ -71,7 +71,7 @@ if only_Gpd
 
     figure
 
-    plot(EKF_state_tracking.time, EKF_state_tracking.mean(6,:)/params.VG, 'm-', 'DisplayName', 'EKF', 'LineWidth', 1);
+    plot(EKF_state_tracking.time, EKF_state_tracking.mean(6,:)/params.VG, 'm-', 'DisplayName', 'EKF Track', 'LineWidth', 1);
     hold on
     if ~use_true_patient
         plot(tools.Time, tools.BGs, 'b-', 'DisplayName', 'Ground truth', 'LineWidth', 1);
@@ -88,7 +88,7 @@ if only_Gpd
         x = transpose(EKF_state_tracking.time);
         x2 = [x, fliplr(x)];
         inBetween = [lower_bound, fliplr(upper_bound)];
-        fill(x2, inBetween, 'b', 'FaceAlpha', 0.1, 'EdgeColor', 'none', 'FaceColor','m','DisplayName','95% CI');
+        fill(x2, inBetween, 'b', 'FaceAlpha', 0.1, 'EdgeColor', 'none', 'FaceColor','m','DisplayName','EKF 95% CI');
         hold on
     end
     
@@ -99,8 +99,19 @@ if only_Gpd
 
 
     if show_future_predictions
-        plot(future_predictions.time, future_predictions.values/params.VG, 'x', 'DisplayName', 'EKF 30min', 'LineWidth', 1, 'Color', "#77AC30")
+        plot(future_predictions.time, future_predictions.values(6,:)/params.VG, 'x', 'DisplayName', 'EKF Pred', 'LineWidth', 1, 'Color', "#77AC30")
         hold on
+        if show_confidence_interval
+            gamma = 1.96;
+            sigma = sqrt(future_predictions.cov);
+            upper_bound = (future_predictions.values(6,:) + gamma * sigma)/params.VG;
+            lower_bound = (future_predictions.values(6,:) - gamma * sigma)/params.VG;
+            x = transpose(future_predictions.time);
+            x2 = [x, fliplr(x)];
+            inBetween = [lower_bound, fliplr(upper_bound)];
+            fill(x2, inBetween, 'b', 'FaceAlpha', 0.1, 'EdgeColor', 'none', 'FaceColor',"#77AC30",'DisplayName','Pred 95% CI');
+            hold on
+        end
     end
     
     legend show;
@@ -113,11 +124,11 @@ if plot_complete_history
     figure
 
     subplot(2,1,1)
-    stem([ekf.t_history], [ekf.u_history.IIR], 'square', 'Color', 'g', 'DisplayName', 'u')
+    stem([ekf.t_history], [ekf.u_history(2,:)], 'square', 'Color', 'g', 'DisplayName', 'u')
     hold on
-    stem([ekf.t_history], [ekf.v_history.IIR_dt], 'x', 'Color', 'b', 'DisplayName', 'v (IIR dt)');
+    stem([ekf.t_history], [ekf.v_history(2,:)], 'x', 'Color', 'b', 'DisplayName', 'v (IIR dt)');
     hold on
-    stem([ekf.t_history], [ekf.y_history.insulin_to_infuse], '.', 'Color', 'r', 'DisplayName', 'Insulin to infuse');
+    stem([ekf.t_history], [ekf.y_history(1,:)], '.', 'Color', 'r', 'DisplayName', 'Insulin to infuse');
     hold off
     grid on
     ylabel('IIR')
@@ -125,13 +136,13 @@ if plot_complete_history
     legend show
 
     subplot(2,1,2)
-    stem([ekf.t_history], [ekf.u_history.CHO], 'square', 'Color', 'g', 'DisplayName', 'u');
+    stem([ekf.t_history], [ekf.u_history(1,:)], 'square', 'Color', 'g', 'DisplayName', 'u');
     hold on
-    stem([ekf.t_history], [ekf.v_history.CHO_consumed_rate], 'x', 'Color', 'b', 'DisplayName', 'v (CHO consumed rate)');
+    stem([ekf.t_history], [ekf.v_history(1,:)], 'x', 'Color', 'b', 'DisplayName', 'v (CHO consumed rate)');
     hold on
-    stem([ekf.t_history], [ekf.y_history.CHO_to_eat], '.', 'Color', 'r', 'DisplayName', 'CHO to eat');
+    stem([ekf.t_history], [ekf.y_history(3,:)], '.', 'Color', 'r', 'DisplayName', 'CHO to eat');
     hold on
-    plot([ekf.t_history], [ekf.y_history.D], 'Color', 'm', 'DisplayName', 'CHO eaten');
+    plot([ekf.t_history], [ekf.y_history(4,:)], 'Color', 'm', 'DisplayName', 'CHO eaten');
     grid on
     ylabel('CHO')
     xlim([t_start t_end]);

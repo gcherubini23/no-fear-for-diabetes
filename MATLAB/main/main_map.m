@@ -38,8 +38,7 @@ R = 20;  % TBD
 ekf_dt = 1; % [min]
 
 model = non_linear_model(tools);
-lin_model = linearized_model(tools);
-ekf = ekf(model, lin_model, tools, params, ekf_dt, Q, R);
+ekf = ekf(model, tools, params, ekf_dt, Q, R);
 ekf.dt = ekf_dt;
 
 [x0_, ymin1_] = tools.init_conditions(params);
@@ -80,7 +79,7 @@ function mapLoss = log_posterior(p, cov_p, prior, patient, ekf, patientData, win
             u = uk;
             if new_measurement_detected
                 % ekf = ekf.update_sensor_cov(zk);
-                r = zk - ekf.H(6) * x.Gpd;
+                r = zk - ekf.H(6) * x(6);
                 log_lik = log_lik + r * r / ekf.R;
             end
             last_process_update = t;

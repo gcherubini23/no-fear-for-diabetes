@@ -144,7 +144,7 @@ function idx = extract_idx(database, patient_ID, start_day, days_to_examine)
     else
         if ~strcmp(string(days_to_examine), 'all')
             idx = database.Time >= start_day & ...
-                  database.Time < start_day + days(days_to_examine);
+                  database.Time <= start_day + days(days_to_examine);
         else
             num_rows = size(database,1);
             idx = 1:num_rows;

@@ -39,8 +39,7 @@ Q = diag([10,10,10,high_uncertainty,high_uncertainty,high_uncertainty,0,0,0,0,0,
 R = 1000;  % TBD
 ekf_dt = 1; % [min]
 
-lin_model = linearized_model(tools);
-ekf = ekf(model, lin_model, tools, params, ekf_dt, Q, R);
+ekf = ekf(model, tools, params, ekf_dt, Q, R);
 ekf.dt = ekf_dt;
 
 [x0_, ymin1_] = tools.init_conditions(params);
@@ -104,7 +103,7 @@ function f = objective(p, patient, ekf, patientData, window, params_to_estimate,
             u = uk;
             if new_measurement_detected
                 measurements(end+1) = zk;
-                predictions(end+1) = x.Gpd;
+                predictions(end+1) = x(6);
             end
             last_process_update = t;
         end
