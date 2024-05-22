@@ -99,14 +99,14 @@
 #define TRUE        1
 #define FALSE       0
 #define EPS         0.00001
-#define UPDATE_RATE 33
+#define UPDATE_RATE 10
 #define SEC_IN_MIN  1.0f
 #define ACLK_HZ     32768
 // Kalman Filter:
 #define DT          1
 #define CGM_MARD    15
-#define MODEL_COV   1000
-#define SENSOR_COV  1000
+#define MODEL_COV   30
+#define SENSOR_COV  100
 // ------------------- END -----------------------
 
 // -------------- FRAM VARIABLES -----------------

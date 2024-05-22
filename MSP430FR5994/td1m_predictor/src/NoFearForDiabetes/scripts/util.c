@@ -80,6 +80,15 @@ void SquareMatrixDiff(float A[STATE_SPACE][STATE_SPACE], float B[STATE_SPACE][ST
     }
 }
 
+void SquareMatrixScalarMultiply(float A[STATE_SPACE][STATE_SPACE], float scalar) {
+    int i, j;
+    for (i = 0; i < STATE_SPACE; i++) {
+            for (j = 0; j < STATE_SPACE; j++) {
+                A[i][j] *= scalar;
+            }
+    }
+}
+
 //#pragma CODE_SECTION(ArrayMatrixMultiply, ".ramfunc")
 void ArrayMatrixMultiply(float vec[STATE_SPACE], float A[STATE_SPACE][STATE_SPACE], float res[STATE_SPACE], bool left) {
     float val;

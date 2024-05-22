@@ -86,8 +86,7 @@ void ekf_on() {
 
         if (new_measurement) {
             float residual, innovation_cov;
-
-//            update_measurement_cov(z_k);
+            update_measurement_cov(z_k);
             measurement_update(x_, P_, z_k, &residual, &innovation_cov);
             /* To implement anomaly detector */
         }

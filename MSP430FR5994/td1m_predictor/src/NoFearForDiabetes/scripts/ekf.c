@@ -44,11 +44,17 @@ void update_measurement_cov(float z) {
 //#pragma CODE_SECTION(process_update, ".ramfunc")
 void process_update(float x[STATE_SPACE], float P[STATE_SPACE][STATE_SPACE], const float u[INPUT_SPACE], float y[EXTRA_STATE_SPACE], float v[MODEL_INPUT_SPACE], float dt, const float params[NUM_PARAMS]) {
     float xkmin1[STATE_SPACE], A_T[STATE_SPACE][STATE_SPACE], A[STATE_SPACE][STATE_SPACE], temp1[STATE_SPACE][STATE_SPACE], Q[STATE_SPACE][STATE_SPACE];
+    int i, j;
     memcpy(xkmin1, x, STATE_SPACE * sizeof(float));
     euler_solve(x, u, y, v, dt, params);
     linearize(xkmin1, y, FALSE, params);
     memcpy(A, mA, STATE_SPACE * STATE_SPACE * sizeof(float));
     memcpy(Q, mQ, STATE_SPACE * STATE_SPACE * sizeof(float));
+    SquareMatrixScalarMultiply(A, dt);
+    SquareMatrixScalarMultiply(Q, dt);
+    for (i = 0; i < STATE_SPACE; i++) {
+            A[i][i] += 1;
+    }
     SquareMatrixTranspose(A, A_T);
     SquareMatrixMultiply(A, P, temp1);
     SquareMatrixMultiply(temp1, A_T, P);

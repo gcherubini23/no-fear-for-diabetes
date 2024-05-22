@@ -70,8 +70,14 @@ end
 if only_Gpd
 
     figure
+    
+    if show_confidence_interval
+        name = 'EKF Track \pm 2\sigma';
+    else
+        name = 'EKF Track';
+    end
 
-    plot(EKF_state_tracking.time, EKF_state_tracking.mean(6,:)/params.VG, 'm-', 'DisplayName', 'EKF Track', 'LineWidth', 1);
+    plot(EKF_state_tracking.time, ekf.H * EKF_state_tracking.mean, '-', 'DisplayName', name, 'LineWidth', 1, 'Color', 'm');
     hold on
     if ~use_true_patient
         plot(tools.Time, tools.BGs, 'b-', 'DisplayName', 'Ground truth', 'LineWidth', 1);
@@ -81,41 +87,60 @@ if only_Gpd
     hold on
 
     if show_confidence_interval
-        gamma = 1.96;
+        gamma = 2;
         sigma = sqrt(EKF_state_tracking.variance);
-        upper_bound = (EKF_state_tracking.mean(6,:) + gamma * sigma)/params.VG;
-        lower_bound = (EKF_state_tracking.mean(6,:) - gamma * sigma)/params.VG;
+        upper_bound = ekf.H * EKF_state_tracking.mean + gamma * sigma;
+        lower_bound = ekf.H * EKF_state_tracking.mean - gamma * sigma;
         x = transpose(EKF_state_tracking.time);
         x2 = [x, fliplr(x)];
         inBetween = [lower_bound, fliplr(upper_bound)];
-        fill(x2, inBetween, 'b', 'FaceAlpha', 0.1, 'EdgeColor', 'none', 'FaceColor','m','DisplayName','EKF 95% CI');
+        fill(x2, inBetween, 'b', 'FaceAlpha', 0.1, 'EdgeColor', 'none', 'FaceColor','m','HandleVisibility', 'off');
         hold on
     end
     
     if plot_anomalies
         plot(anomaly_detector.time, anomaly_detector.anomalies, 'o','DisplayName', 'Anomalies', 'Color', [1 0 0], 'MarkerSize', 4)
-        hold on 
+        hold on
+        if simulate_anomalies
+            plot(true_CGM.time, true_CGM.values, 'o', 'Color', "#C0C0C0", 'MarkerSize', 4, 'HandleVisibility', 'off')
+            hold on
+        end
     end
 
 
     if show_future_predictions
-        plot(future_predictions.time, future_predictions.values(6,:)/params.VG, 'x', 'DisplayName', 'EKF Pred', 'LineWidth', 1, 'Color', "#77AC30")
-        hold on
-        if show_confidence_interval
-            gamma = 1.96;
-            sigma = sqrt(future_predictions.cov);
-            upper_bound = (future_predictions.values(6,:) + gamma * sigma)/params.VG;
-            lower_bound = (future_predictions.values(6,:) - gamma * sigma)/params.VG;
-            x = transpose(future_predictions.time);
-            x2 = [x, fliplr(x)];
-            inBetween = [lower_bound, fliplr(upper_bound)];
-            fill(x2, inBetween, 'b', 'FaceAlpha', 0.1, 'EdgeColor', 'none', 'FaceColor',"#77AC30",'DisplayName','Pred 95% CI');
+        if show_pred_improvement
+            for i = 1:length(trajectories)
+                traj = trajectories{i};
+                plot(traj.time, traj.values/params.VG, '-', 'LineWidth', 1, 'Color', "#C0C0C0", 'HandleVisibility', 'off')
+                hold on
+            end
+            
+        else
+            if show_confidence_interval
+                name = 'EKF Pred \pm 2\sigma';
+            else
+                name = 'EKF Pred';
+            end
+            plot(future_predictions.time, ekf.H * future_predictions.values, 'x', 'DisplayName', name, 'LineWidth', 1, 'Color', "#77AC30")
             hold on
+            if show_confidence_interval
+                gamma = 2;
+                sigma = sqrt(future_predictions.cov);
+                upper_bound = ekf.H * future_predictions.values + gamma * sigma;
+                lower_bound = ekf.H * future_predictions.values - gamma * sigma;
+                x = transpose(future_predictions.time);
+                x2 = [x, fliplr(x)];
+                inBetween = [lower_bound, fliplr(upper_bound)];
+                fill(x2, inBetween, 'b', 'FaceAlpha', 0.1, 'EdgeColor', 'none', 'FaceColor',"#77AC30", 'HandleVisibility', 'off');
+                hold on
+            end
         end
     end
     
     legend show;
     xlim([t_start t_end]);
+    ylim([-0.5, 400]);
     set(gcf, 'Position', get(0, 'Screensize'));
 end
 

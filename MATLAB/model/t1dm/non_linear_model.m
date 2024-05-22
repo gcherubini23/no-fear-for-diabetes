@@ -125,6 +125,9 @@ classdef non_linear_model
                      0, 6000/params.BW;
                      0, 0;];
 
+
+            % eig(obj.mA)
+
         end
 
     end

@@ -1,3 +1,0 @@
-void init_ekf();
-void update_measurement_cov(float z);
-void process_update(float* x, float** P, const float* u, float* y, float* v, float dt, const float* params);

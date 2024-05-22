@@ -1,5 +1,0 @@
-void arrayScalarMultiply(float* vec, int length, float scalar);
-void arrayAddInPlace(float* vec1, const float* vec2, int length, bool make_non_negative);
-float arrayMultiply(const float* vec1, const float* vec2, int length);
-void transpose(float A[STATE_SPACE][STATE_SPACE], float At[STATE_SPACE][STATE_SPACE]);
-void euler_solve(float* x, const float* u, float* y, float* v, float dt, const float* params);

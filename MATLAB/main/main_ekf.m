@@ -12,13 +12,16 @@ if use_tuned_model
 end
 
 
-% 25 160 is good for simulated patient
+% Anderson Q: p11 = 30; p17 = 150
 
-high_uncertainty = 30;
-% Q = diag([0,0,0,high_uncertainty,high_uncertainty,high_uncertainty,0,0,0,0,0,0,0]);    % TBD
+% high_uncertainty = 150;
+% high_uncertainty = 30;
+high_uncertainty = 0.5;
+% Q = diag([0,0,0,high_uncertainty,high_uncertainty,high_uncertainty,0,0,0,0,0,0,0]);
 Q = eye(length(state_fields)) * high_uncertainty;
-R = 100;  % TBD
-ekf_dt = 1; % [min]
+R = 100;
+
+ekf_dt = 2; % [min]
 
 model = non_linear_model(tools);
 ekf = ekf(model, tools, params, ekf_dt, Q, R);
@@ -45,45 +48,59 @@ residuals = [];
 
 predictions_to_check = [];
 CGM_to_check = [];
+times_to_check = datetime([], 'ConvertFrom', 'posixtime', 'Format', 'dd-MMM-yyyy HH:mm:ss');
+
+trajectories = {};
 
 t = t_start;
 x = x0;
 y = y_minus1;
 u = u0;
 last_process_update = t_start;
-P = Q * 600;
+P = Q * 6000;
 
 %% Start simulation
 % profile on
 
 if simulate_anomalies
-    patientData.CGM.values(522) = 180;
-    patientData.CGM.values(floor(length(patientData.CGM.values)*2/3)) = 200;
-    patientData.CGM.values(floor(length(patientData.CGM.values)*1/6)) = 30;
-    patientData.CGM.values(floor(length(patientData.CGM.values)*2/6)) = 170;
-    patientData.CGM.values(floor(length(patientData.CGM.values)*11/16)) = 350;
-    patientData.CGM.values(floor(length(patientData.CGM.values)*2/5:floor(length(patientData.CGM.values)*2.5/5))) = 0;
+    true_CGM.values = [];
+    true_CGM.time = datetime([], 'ConvertFrom', 'posixtime', 'Format', 'dd-MMM-yyyy HH:mm:ss');
+
+    s = 2/7;
+    e = 5/8;
+    % s = 2/5;
+    % e = 2.5/5;
+    idxs = floor(length(patientData.CGM.values)*s:length(patientData.CGM.values)*e);
+    true_CGM.values = [true_CGM.values, patientData.CGM.values(idxs)'];
+    true_CGM.time = [true_CGM.time, patientData.CGM.time(idxs)'];
+    patientData.CGM.values(idxs) = 0;
+
+    spikes_fractions = [15/16, 2/3, 1/6, 9/16, 11/16, 1/2];
+    spikes_values = [180, 200, 30, 170, 350, 250];
+
+    for i = 1:length(spikes_values)
+        idx = floor(length(patientData.CGM.values)*spikes_fractions(i));
+        value = spikes_values(i);
+        true_CGM.values(end+1) = patientData.CGM.values(idx);
+        true_CGM.time(end+1) = patientData.CGM.time(idx);
+        patientData.CGM.values(idx) = value;
+    end
+
 end
 
 flag = true;
 disp('Starting simulation...')
-horizon = 45;
-i = 0;
+horizon = 30;
 while t <= t_end
     
     [z_k, new_measurement_detected] = sample_measurement(t, patientData);
     [u_k, new_input_detected] = sample_input(t, patientData);
     
-    % if i < 100 && new_measurement_detected
-    %     new_measurement_detected = false;
-    % end
-    % i = i+1;
-
     if new_input_detected || new_measurement_detected
 
         dt = convert_to_minutes(t - last_process_update);
         if plot_complete_history
-            [xp_k, Pp_k, y_kminus1, v_kminus1, ekf] = ekf.predict_and_save(x, y, u, P, dt, params, last_process_update, true);
+            [xp_k, Pp_k, y_kminus1, v_kminus1, ekf] = ekf.predict_save_all_variables(x, y, u, P, dt, params, last_process_update, true);
         else
             [xp_k, Pp_k, y_kminus1, v_kminus1] = ekf.predict(x, y, u, P, dt, params, true);
         end
@@ -117,6 +134,7 @@ while t <= t_end
             else
                 x_current = xm_k;
                 P_current = Pm_k;
+                anomaly = false;
             end
         end
 
@@ -128,18 +146,36 @@ while t <= t_end
         last_process_update = t;
 
         EKF_state_tracking.mean(:,end+1) = x';
-        EKF_state_tracking.variance(end+1) = P(6,6);
+        EKF_state_tracking.variance(end+1) = ekf.H * P * ekf.H';
         EKF_state_tracking.time(end+1, :) = t;
-        
-        [temp,temp_cov,~,~] = ekf.predict(x, y, u, P, horizon, params, true);
-        future_predictions.values(:,end+1) = temp';
-        future_predictions.cov(end+1) = temp_cov(6,6);
-        future_predictions.time(end+1,:) = t + minutes(horizon);
-        
-        if new_measurement_detected && ~anomaly
-            predictions_to_check(end+1) = x(6)/params.VG;
-            CGM_to_check(end+1) = z_k;
+
+        delay_t = 0;
+
+        if show_pred_improvement
+            [trajectory] = ekf.predict_save_trajectories(x, y, u, P, horizon, params, true, t);
+            trajectories{end+1} = trajectory;
+        else
+            [temp,temp_cov,~,~] = ekf.predict(x, y, u, P, horizon, params, true);
+            future_predictions.values(:,end+1) = temp';
+            future_predictions.cov(end+1) = ekf.H * temp_cov * ekf.H';
+            % future_predictions.time(end+1,:) = t + minutes(horizon);
+            
+            future_predictions.time(end+1,:) = t + minutes(horizon) - minutes(delay_t);
         end
+        
+        if new_measurement_detected && t + minutes(horizon) <= patientData.CGM.time(end) && ~show_pred_improvement          
+            predictions_to_check(end+1) = ekf.H * temp';
+
+            % prediction_time = t + minutes(horizon);
+            prediction_time = t + minutes(horizon) - minutes(delay_t);
+
+            % chosen_time = patientData.CGM.time(nearest_idx);
+            time_differences = abs(patientData.CGM.time - prediction_time);
+            [~, nearest_idx] = min(time_differences);
+            CGM_to_check(end+1) = patientData.CGM.values(nearest_idx);
+            times_to_check(end+1) = prediction_time;
+        end
+
     end
        
     t = next_step(t, patientData);
@@ -148,29 +184,22 @@ end
 % profile off
 % profile viewer
 
-if compute_mse
-    % if ~use_true_patient
-    %     mse = mean((transpose(patientData.BG.values) - EKF_state_tracking.mean(6, :)/params.VG).^2);
-    %     rmse = mse^(1/2)
-    % else
-    %     mse = 0;
-    %     for i = 1:length(patientData.CGM.values)
-    %         t = patientData.CGM.time(i);
-    %         idx = find(EKF_state_tracking.time == t);
-    %         mse = mse + (patientData.CGM.values(i) - EKF_state_tracking.mean(6,idx)/params.VG)^2;
-    %     end
-    %     mse = mse / length(patientData.CGM.values);
-    %     rmse = mse^(1/2)
-    % end
-
+if ~show_pred_improvement  
     rmse = mean((predictions_to_check - CGM_to_check).^2)^(1/2)
+    T_s = convert_to_minutes(mean(diff(times_to_check)));
+    tau = delay(CGM_to_check, predictions_to_check);
+    horizon
+    Delay = abs(tau) * T_s
+
 end
 
 %% Plot
 
 if do_plots
     run('plotting.m');
-    % [total, percentage] = clarke(patientData.CGM.values',EKF_state_tracking.mean(6,:)/params.VG)
+    if ~show_pred_improvement  
+        [total, percentage] = clarke(CGM_to_check,predictions_to_check)
+    end
 end
 
 disp("Done");

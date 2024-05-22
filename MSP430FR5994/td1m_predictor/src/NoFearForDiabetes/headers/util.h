@@ -5,5 +5,6 @@ void SquareMatrixTranspose(float A[STATE_SPACE][STATE_SPACE], float At[STATE_SPA
 void SquareMatrixMultiply(float A[STATE_SPACE][STATE_SPACE], float B[STATE_SPACE][STATE_SPACE], float RES[STATE_SPACE][STATE_SPACE]);
 void SquareMatrixAdd(float A[STATE_SPACE][STATE_SPACE], float B[STATE_SPACE][STATE_SPACE]);
 void SquareMatrixDiff(float A[STATE_SPACE][STATE_SPACE], float B[STATE_SPACE][STATE_SPACE]);
+void SquareMatrixScalarMultiply(float A[STATE_SPACE][STATE_SPACE], float scalar);
 void ArrayMatrixMultiply(float vec[STATE_SPACE], float A[STATE_SPACE][STATE_SPACE], float res[STATE_SPACE], bool left);
 void euler_solve(float* x, const float* u, float* y, float* v, float dt, const float* params);

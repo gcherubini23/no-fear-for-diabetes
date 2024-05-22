@@ -3,7 +3,7 @@ classdef ekf
     H;
 
     K = 0;
-    Q;  % needs to be tuned depending the dt!!!
+    Q;
     R;
     
     dt;
@@ -79,7 +79,7 @@ classdef ekf
 
         end
 
-        function [x_horizon, P_horizon, y_horizon_minus1, v_horizon_minus1, obj] = predict_and_save(obj, x_k, y_kminus1, u_k, P_k, horizon, params, t0, update_P)
+        function [x_horizon, P_horizon, y_horizon_minus1, v_horizon_minus1, obj] = predict_save_all_variables(obj, x_k, y_kminus1, u_k, P_k, horizon, params, t0, update_P)
             t = 0;
             x = x_k;
             y = y_kminus1;
@@ -124,9 +124,36 @@ classdef ekf
 
         end
 
+        function [trajectory] = predict_save_trajectories(obj, x_k, y_kminus1, u_k, P_k, horizon, params, update_P, t)
+            x = x_k;
+            y = y_kminus1;
+            u = u_k;
+            P = P_k;
+            trajectory.values = [];
+            trajectory.values(end+1) = x_k(6);
+            trajectory.time = datetime([], 'ConvertFrom', 'posixtime', 'Format', 'dd-MMM-yyyy HH:mm:ss');
+            trajectory.time(end+1) = t;
+            k = 0;
+
+            while k < horizon
+                step_dt = min(obj.dt, horizon - k);             
+                [x_new, P_new, y_new, ~] = obj.process_update(x,y,u,P,step_dt,params,update_P);
+                x = x_new;
+                P = P_new;
+                y = y_new;
+                
+                u = [0,0];
+                k = k + step_dt;
+                t = t + minutes(step_dt);
+
+                trajectory.values(end+1) = x(6);
+                trajectory.time(end+1) = t;
+            end
+        end
+
         function obj = update_sensor_cov(obj, z)
             % m = (obj.CGM_MARD / 100 * z) * (obj.CGM_MARD / 100 * z)
-            obj.R = (obj.CGM_MARD / 100 * z) * (obj.CGM_MARD / 100 * z);
+            obj.R = max((obj.CGM_MARD / 100 * z) * (obj.CGM_MARD / 100 * z), 20);
         end
 
     end
