@@ -12,22 +12,27 @@ if use_tuned_model
 end
 
 
+horizon = 30;
+
+
 % Anderson Q: p11 = 30; p17 = 150
 
 % high_uncertainty = 150;
-% high_uncertainty = 30;
-high_uncertainty = 0.5;
-% Q = diag([0,0,0,high_uncertainty,high_uncertainty,high_uncertainty,0,0,0,0,0,0,0]);
+high_uncertainty = 30;
+% high_uncertainty = 10;
 Q = eye(length(state_fields)) * high_uncertainty;
 R = 100;
 
-ekf_dt = 2; % [min]
+ekf_dt = 2.3; % [min]
+% ekf_dt = 2.5;
+
+bounds = [100, 150] * params.VG;
 
 model = non_linear_model(tools);
 ekf = ekf(model, tools, params, ekf_dt, Q, R);
 ekf.dt = ekf_dt;
 
-alpha = 0.1;
+alpha = 0.05;
 anomaly_detector = anomaly_detector(alpha);
 
 if use_basal_init_conditions
@@ -57,19 +62,23 @@ x = x0;
 y = y_minus1;
 u = u0;
 last_process_update = t_start;
-P = Q * 6000;
+P0 = eye(length(state_fields)) * 12000;
+% P0 = Q * 6000;
+P = P0;
 
 %% Start simulation
 % profile on
+
+done = false;
 
 if simulate_anomalies
     true_CGM.values = [];
     true_CGM.time = datetime([], 'ConvertFrom', 'posixtime', 'Format', 'dd-MMM-yyyy HH:mm:ss');
 
-    s = 2/7;
-    e = 5/8;
-    % s = 2/5;
-    % e = 2.5/5;
+    % s = 2/7;
+    % e = 5/8;
+    s = 2/5;
+    e = 2.5/5;
     idxs = floor(length(patientData.CGM.values)*s:length(patientData.CGM.values)*e);
     true_CGM.values = [true_CGM.values, patientData.CGM.values(idxs)'];
     true_CGM.time = [true_CGM.time, patientData.CGM.time(idxs)'];
@@ -77,6 +86,8 @@ if simulate_anomalies
 
     spikes_fractions = [15/16, 2/3, 1/6, 9/16, 11/16, 1/2];
     spikes_values = [180, 200, 30, 170, 350, 250];
+    % spikes_fractions = [];
+    % spikes_values = [];
 
     for i = 1:length(spikes_values)
         idx = floor(length(patientData.CGM.values)*spikes_fractions(i));
@@ -88,9 +99,7 @@ if simulate_anomalies
 
 end
 
-flag = true;
 disp('Starting simulation...')
-horizon = 30;
 while t <= t_end
     
     [z_k, new_measurement_detected] = sample_measurement(t, patientData);
@@ -106,13 +115,6 @@ while t <= t_end
         end
         x_current = xp_k;
         P_current = Pp_k;
-
-        if t == t_start || flag == true
-            t_history = t;
-            flag = false;
-        else
-            t_history(end+1,:) = t;
-        end
                     
         if new_measurement_detected && do_measurment_update
             ekf = ekf.update_sensor_cov(z_k);
@@ -155,25 +157,42 @@ while t <= t_end
             [trajectory] = ekf.predict_save_trajectories(x, y, u, P, horizon, params, true, t);
             trajectories{end+1} = trajectory;
         else
-            [temp,temp_cov,~,~] = ekf.predict(x, y, u, P, horizon, params, true);
-            future_predictions.values(:,end+1) = temp';
-            future_predictions.cov(end+1) = ekf.H * temp_cov * ekf.H';
-            % future_predictions.time(end+1,:) = t + minutes(horizon);
-            
-            future_predictions.time(end+1,:) = t + minutes(horizon) - minutes(delay_t);
+            if save_energy && (x(6) >= bounds(1) && x(6) <= bounds(2))
+                predict = false;
+            else
+                predict = true;
+            end
+
+            if predict
+                [temp,temp_cov,~,~] = ekf.predict(x, y, u, P, horizon, params, true);
+                future_predictions.values(:,end+1) = temp';
+                future_predictions.cov(end+1) = ekf.H * temp_cov * ekf.H';
+                % future_predictions.time(end+1,:) = t + minutes(horizon);
+                
+                future_predictions.time(end+1,:) = t + minutes(horizon) - minutes(delay_t);
+            end
         end
         
-        if new_measurement_detected && t + minutes(horizon) <= patientData.CGM.time(end) && ~show_pred_improvement          
+        if new_measurement_detected && t + minutes(horizon) <= patientData.CGM.time(end) && ~show_pred_improvement && predict        
             predictions_to_check(end+1) = ekf.H * temp';
 
-            % prediction_time = t + minutes(horizon);
+            prediction_time = t + minutes(horizon);
             prediction_time = t + minutes(horizon) - minutes(delay_t);
 
-            % chosen_time = patientData.CGM.time(nearest_idx);
             time_differences = abs(patientData.CGM.time - prediction_time);
             [~, nearest_idx] = min(time_differences);
+            % chosen_time = patientData.CGM.time(nearest_idx)
             CGM_to_check(end+1) = patientData.CGM.values(nearest_idx);
             times_to_check(end+1) = prediction_time;
+        end
+
+        if loose_track_of_time
+            m = floor(length(patientData.CGM.values)/2);
+            if t > patientData.CGM.time(m) && ~done
+                done = true;
+                P = P0;
+                x = x0;
+            end
         end
 
     end
@@ -197,9 +216,6 @@ end
 
 if do_plots
     run('plotting.m');
-    if ~show_pred_improvement  
-        [total, percentage] = clarke(CGM_to_check,predictions_to_check)
-    end
 end
 
 disp("Done");

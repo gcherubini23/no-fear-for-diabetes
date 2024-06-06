@@ -7,31 +7,29 @@ rng default;
 run('config.m')
 eps = 1e-5;
 
-% params_to_estimate = {'kp2','k1','k2','kp1','ki','ke1','kmax','kmin','kabs','kp3','Vmx'};
-% nvars = length(params_to_estimate);
-% prior = [0.0021, 0.065, 0.079, 2.70, 0.0079, 0.0005, 0.0558, 0.008, 0.0570, 0.009, 0.047];
-% cov_p = eye(nvars) * 0.5;
+params_to_estimate = {'kp2','k1','k2','kp1','ki','ke1','kmax','kmin','kabs','kp3','Vmx'};
+nvars = length(params_to_estimate);
+prior = [0.0021, 0.065, 0.079, 2.70, 0.0079, 0.0005, 0.0558, 0.008, 0.0570, 0.009, 0.047];
+cov_p = eye(nvars) * 1;
 % ub = [1, 1, 1, 6, 1, 1, 1, 1, 1, 1, 1];  % Upper bounds
 % lb = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] + eps;  % Lower bounds
 
-params_to_estimate = {'kp2','kp1','ki','ke1','kp3','Vmx'};
-nvars = length(params_to_estimate);
-prior = [0.0021, 2.70, 0.0079, 0.0005, 0.009, 0.047];
-cov_p = eye(nvars) * 0.5;
-ub = [1, 6, 1, 1, 1, 1];  % Upper bounds
-lb = [0, 0, 0, 0, 0, 0] + eps;  % Lower bounds
 
-% params_to_estimate = {'kp2','k1','k2','kp1','ki','ke1','kmax','kmin','kabs','kp3','Vmx','VG'};
-% nvars = length(params_to_estimate);
-% prior = [0.0021, 0.065, 0.079, 2.70, 0.0079, 0.0005, 0.0558, 0.008, 0.0570, 0.009, 0.047, 1.88];
-% cov_p = eye(nvars) * 0.5;
-% ub = [1, 1, 1, 6, 1, 1, 1, 1, 1, 1, 1, 5];  % Upper bounds
-% lb = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] + eps;  % Lower bounds
+% range = 1;
+% ub = [0.02,   0.5,    0.5,    5,   0.01,   0.01,  0.1,  0.1,   0.5,  0.5,    0.5] * range;
+% %     kp2,    k1,     k2,     kp1, ki,     ke1,    kmax, kmin,   kabs, kp3,    Vmx  
+% lb = [0.0001, 0.0001, 0.0001, 2,   0.0040, 0.0001, 0.01, 0.0001, 0.01, 0.01, 0.001] / range;
+
+
+% ub = [0.5, 0.5, 0.5, 8, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5];
+% lb = [0.0001, 0.0001, 0.0001, 1, 0.0040, 0.0001, 0.01, 0.01, 0.01, 0.0001, 0.001];
+
+
 
 
 window_size = experiment_total_time;
 
-high_uncertainty = 1000;
+high_uncertainty = 100;
 Q = diag([10,10,10,high_uncertainty,high_uncertainty,high_uncertainty,0,0,0,0,0,0,0]);    % TBD
 % Q = eye(length(state_fields)) * high_uncertainty;
 R = 20;  % TBD
@@ -52,7 +50,7 @@ ymin1 = ymin1_;
 window = set_window(window_size, t_start, x0, ymin1, u0, t_end);
 
 options = optimoptions('fmincon', 'Display', 'iter', 'Algorithm', 'sqp');
-options.MaxFunctionEvaluations = 1200;
+options.MaxFunctionEvaluations = 2000;
 
 objectiveFunc = @(p) log_posterior(p, cov_p, prior, params, ekf, patientData, window, params_to_estimate);
 
@@ -78,7 +76,7 @@ function mapLoss = log_posterior(p, cov_p, prior, patient, ekf, patientData, win
             y = ykmin1;
             u = uk;
             if new_measurement_detected
-                % ekf = ekf.update_sensor_cov(zk);
+                ekf = ekf.update_sensor_cov(zk);
                 r = zk - ekf.H(6) * x(6);
                 log_lik = log_lik + r * r / ekf.R;
             end

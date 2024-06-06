@@ -35,7 +35,6 @@ classdef ekf
             [xp_k, y_kminus1, v_kminus1] = obj.tools.euler_solve(obj.model,params,x_kminus1,y_kminus2,u_kminus1,dt);
             if update_P
                 obj.model = obj.model.linearize(x_kminus1,y_kminus1,params);
-                % Pp_k = obj.model.mA * P_kminus1 * transpose(obj.model.mA) + obj.Q;
                 Pp_k = (eye(length(x_kminus1)) + obj.model.mA .* dt) * P_kminus1 * transpose(eye(length(x_kminus1)) + obj.model.mA .* dt) + obj.Q .* dt;
             else
                 Pp_k = P_kminus1;
@@ -47,8 +46,8 @@ classdef ekf
             obj.K = Pp * transpose(obj.H) * (innovation_covariance + 1e-8)^(-1);
             residual = z - obj.H * xp';
             xm = xp + obj.K' * residual;
-            KRK = obj.K * obj.R * transpose(obj.K);
-            Pm = (eye(length(xp)) - obj.K * obj.H) * Pp * transpose(eye(length(xp)) - obj.K * obj.H) + KRK;
+            % KRK = obj.K * obj.R * transpose(obj.K);
+            Pm = (eye(length(xp)) - obj.K * obj.H) * Pp * transpose(eye(length(xp)) - obj.K * obj.H); % + KRK;
         end
 
         function [x_horizon, P_horizon, y_horizon_minus1, v_horizon_minus1] = predict(obj, x_k, y_kminus1, u_k, P_k, horizon, params, update_P)
@@ -89,6 +88,18 @@ classdef ekf
             
             time = t0;
 
+            if isempty(obj.y_history)
+                obj.u_history = u';
+                obj.y_history = y';
+                obj.v_history = v';
+                obj.t_history = time;
+            else
+                obj.u_history(:,end+1) = u';
+                obj.y_history(:,end+1) = y';
+                obj.v_history(:,end+1) = v';
+                obj.t_history(end+1) = time;
+            end
+
             while t < horizon
 
                 step_dt = min(obj.dt, horizon - t);             
@@ -99,21 +110,15 @@ classdef ekf
                 y = y_new;
                 v = v_new;
 
-                if isempty(obj.y_history)
-                    obj.u_history = u';
-                    obj.y_history = y';
-                    obj.v_history = v';
-                    obj.t_history = time;
-                else
-                    obj.u_history(:,end+1) = u';
-                    obj.y_history(:,end+1) = y';
-                    obj.v_history(:,end+1) = v';
-                    obj.t_history(end+1) = time;
-                end
-
                 t = t + step_dt;
                 time = time + minutes(step_dt);
                 u = [0,0];
+
+                
+                obj.u_history(:,end+1) = u';
+                obj.y_history(:,end+1) = y';
+                obj.v_history(:,end+1) = v';
+                obj.t_history(end+1) = time;                
 
             end
    
@@ -153,8 +158,18 @@ classdef ekf
 
         function obj = update_sensor_cov(obj, z)
             % m = (obj.CGM_MARD / 100 * z) * (obj.CGM_MARD / 100 * z)
-            obj.R = max((obj.CGM_MARD / 100 * z) * (obj.CGM_MARD / 100 * z), 20);
+            % obj.R = max((obj.CGM_MARD / 100 * z / 2)^2, 80);
+
+            % r = (obj.CGM_MARD / 100 * z / 2)^2;
+
+            obj.R = (obj.CGM_MARD / 100 * z)^2;
+
+            % obj.R = (obj.CGM_MARD / 100 * z / 2)^2;
         end
 
+        function obj = set_covariances(obj, MARD, uncertainty)
+            obj.CGM_MARD = MARD;
+            obj.Q = eye(13) * uncertainty;
+        end
     end
 end

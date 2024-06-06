@@ -3,7 +3,21 @@
  <object class="java.util.HashMap">
   <void method="put">
    <string>TriggerFavorites</string>
-   <object class="com.ti.dvt.energytrace.views.Dashboard$TriggerFavorites"/>
+   <object class="com.ti.dvt.energytrace.views.Dashboard$TriggerFavorites" id="Dashboard$TriggerFavorites0">
+    <void property="items">
+     <void method="put">
+      <string>10min</string>
+      <array class="java.lang.String" length="2">
+       <void index="0">
+        <string>Time &gt;= 0</string>
+       </void>
+       <void index="1">
+        <string>Time &gt;= 600000000000</string>
+       </void>
+      </array>
+     </void>
+    </void>
+   </object>
   </void>
  </object>
 </java>

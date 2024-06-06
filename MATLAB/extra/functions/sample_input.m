@@ -8,7 +8,7 @@ function [u_k, new_input_detected] = sample_input(t, patientData)
     if new_IIR_detected && ~isnan(patientData.IIR.values(idx2))
         u_k(2) = patientData.IIR.values(idx2);
     end
-    if new_meal_detected || new_IIR_detected
+    if (new_meal_detected && u_k(1) ~= 0) || (new_IIR_detected && u_k(2) ~= 0)
         new_input_detected = true;
     else
         new_input_detected = false;

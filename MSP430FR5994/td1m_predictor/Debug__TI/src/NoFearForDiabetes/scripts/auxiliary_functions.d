@@ -18,11 +18,6 @@ src/NoFearForDiabetes/scripts/auxiliary_functions.obj: /Applications/ti/ccs1250/
 src/NoFearForDiabetes/scripts/auxiliary_functions.obj: /Applications/ti/ccs1250/ccs/tools/compiler/ti-cgt-msp430_21.6.1.LTS/include/math.h
 src/NoFearForDiabetes/scripts/auxiliary_functions.obj: /Applications/ti/ccs1250/ccs/tools/compiler/ti-cgt-msp430_21.6.1.LTS/include/_defs.h
 src/NoFearForDiabetes/scripts/auxiliary_functions.obj: /Applications/ti/ccs1250/ccs/tools/compiler/ti-cgt-msp430_21.6.1.LTS/include/machine/_limits.h
-src/NoFearForDiabetes/scripts/auxiliary_functions.obj: /Applications/ti/ccs1250/ccs/tools/compiler/ti-cgt-msp430_21.6.1.LTS/include/time.h
-src/NoFearForDiabetes/scripts/auxiliary_functions.obj: /Applications/ti/ccs1250/ccs/tools/compiler/ti-cgt-msp430_21.6.1.LTS/include/abi_prefix.h
-src/NoFearForDiabetes/scripts/auxiliary_functions.obj: /Applications/ti/ccs1250/ccs/tools/compiler/ti-cgt-msp430_21.6.1.LTS/include/sys/timespec.h
-src/NoFearForDiabetes/scripts/auxiliary_functions.obj: /Applications/ti/ccs1250/ccs/tools/compiler/ti-cgt-msp430_21.6.1.LTS/include/sys/_timespec.h
-src/NoFearForDiabetes/scripts/auxiliary_functions.obj: /Applications/ti/ccs1250/ccs/tools/compiler/ti-cgt-msp430_21.6.1.LTS/include/xlocale/_time.h
 src/NoFearForDiabetes/scripts/auxiliary_functions.obj: /Users/giovannicherubini/Desktop/Thesis/Code/no-fear-for-diabetes/MSP430FR5994/td1m_predictor/src/NoFearForDiabetes/headers/memory_util.h
 src/NoFearForDiabetes/scripts/auxiliary_functions.obj: /Users/giovannicherubini/Desktop/Thesis/Code/no-fear-for-diabetes/MSP430FR5994/td1m_predictor/src/NoFearForDiabetes/headers/config.h
 
@@ -61,16 +56,6 @@ src/NoFearForDiabetes/scripts/auxiliary_functions.obj: /Users/giovannicherubini/
 /Applications/ti/ccs1250/ccs/tools/compiler/ti-cgt-msp430_21.6.1.LTS/include/_defs.h:
 
 /Applications/ti/ccs1250/ccs/tools/compiler/ti-cgt-msp430_21.6.1.LTS/include/machine/_limits.h:
-
-/Applications/ti/ccs1250/ccs/tools/compiler/ti-cgt-msp430_21.6.1.LTS/include/time.h:
-
-/Applications/ti/ccs1250/ccs/tools/compiler/ti-cgt-msp430_21.6.1.LTS/include/abi_prefix.h:
-
-/Applications/ti/ccs1250/ccs/tools/compiler/ti-cgt-msp430_21.6.1.LTS/include/sys/timespec.h:
-
-/Applications/ti/ccs1250/ccs/tools/compiler/ti-cgt-msp430_21.6.1.LTS/include/sys/_timespec.h:
-
-/Applications/ti/ccs1250/ccs/tools/compiler/ti-cgt-msp430_21.6.1.LTS/include/xlocale/_time.h:
 
 /Users/giovannicherubini/Desktop/Thesis/Code/no-fear-for-diabetes/MSP430FR5994/td1m_predictor/src/NoFearForDiabetes/headers/memory_util.h:
 

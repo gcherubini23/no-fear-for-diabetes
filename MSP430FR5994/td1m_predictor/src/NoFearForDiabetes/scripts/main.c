@@ -26,6 +26,7 @@ float u[INPUT_SPACE] = { 0 };
 
 #pragma PERSISTENT(secondsElapsed)
 long secondsElapsed = 0;
+long executionTimeSeconds = 0;
 
 
 void init_MCU()
@@ -34,10 +35,24 @@ void init_MCU()
     WDTCTL = WDTPW | WDTHOLD;
 }
 
-void init_timer() {
+void init_timerA0() {
+    // TA0 counts every second to check if ekf_on() needs to be awaken
     TA0CCTL0 = CCIE;
     TA0CTL = TASSEL__ACLK | MC__UP;
     TA0CCR0 = ACLK_HZ - 1;
+}
+
+void start_timerA1() {
+    // TA1 counts the execution time of ekf_on()
+    TA1CCTL0 = CCIE;
+    TA1CTL = TASSEL__ACLK | MC__UP;
+    TA1CCR0 = ACLK_HZ - 1;
+}
+
+void stop_timerA1() {
+    // Stop TA1
+    TA1CTL = MC__STOP;
+    TA1CCTL0 &= ~CCIE;
 }
 
 void init_states() {
@@ -74,7 +89,11 @@ void ekf_on() {
 
     new_measurement = sample_measurement(&z_k);
     new_input = sample_input(u_k);
-    if (new_measurement || new_input) {
+
+    if (((new_measurement || new_input) && USE_LPM3) || (!USE_LPM3)) {
+
+//        start_timerA1();
+
         float x_[STATE_SPACE], P_[STATE_SPACE][STATE_SPACE], y_[STATE_SPACE], u_[INPUT_SPACE], horizon;
 
         readFloatArray(x, x_, STATE_SPACE);
@@ -95,7 +114,10 @@ void ekf_on() {
         writeFloatArray(y, y_, EXTRA_STATE_SPACE);
         memcpy(P, P_, STATE_SPACE * STATE_SPACE * sizeof(float));
         writeFloatArray(u, u_k, INPUT_SPACE);
+
+//        stop_timerA1();
     }
+
 }
 
 int main(void) {
@@ -104,28 +126,37 @@ int main(void) {
     init_ekf();
     init_states();
     init_model();
-    init_timer();
+    init_timerA0();
 
-    _BIS_SR(LPM3_bits + GIE);
-
-//    while(1) {
-//        ekf_on();
-//        lw(&secondsElapsed, 60);
-//    }
+    if (USE_LPM3) {
+    // For low power mode:
+        _BIS_SR(LPM3_bits + GIE);
+    } else {
+        // For active mode:
+        __enable_interrupt();
+        while(1) {
+            ekf_on();
+        }
+    }
 }
 
 #pragma vector=TIMER0_A0_VECTOR
 __interrupt void Timer_A0_ISR(void) {
-    long time, startTick, endTick, lastExecutionTime;
+    long time;
     time = lr(&secondsElapsed);
     lw(&secondsElapsed, time+1);
-    if(time >= UPDATE_RATE) {
-//        startTick = TA0R;
-        ekf_on();
-//        endTick = TA0R;
-//        lastExecutionTime = (endTick - startTick) * 10 / ACLK_HZ;
-////        lastExecutionTime = (endTick >= startTick) ? (endTick - startTick) : (ACLK_HZ - startTick + endTick);
-//        lw(&secondsElapsed, lastExecutionTime);
-        lw(&secondsElapsed, 0);
+    if (USE_LPM3) {
+        if(time >= UPDATE_RATE * SEC_IN_MIN) {
+            ekf_on();
+        }
     }
 }
+
+#pragma vector=TIMER1_A0_VECTOR
+__interrupt void Timer_A1_ISR(void) {
+    long time;
+    time = lr(&secondsElapsed);
+    lw(&secondsElapsed, time+1);
+}
+
+

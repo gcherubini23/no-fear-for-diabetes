@@ -6,24 +6,10 @@ rng default;
 
 params_to_estimate = {'kp2','k1','k2','kp1','ki','ke1','kmax','kmin','kabs','kp3','Vmx'};
 nvars = length(params_to_estimate);
-ub = [0.02,   0.5,    0.5,    5,   0.01,   0.001,  0.1,  0.01,   0.3,  0.1,    0.1] * 2;
+range = 2;
+ub = [0.02,   0.45,    0.45,    5,   0.01,   0.01,  0.1,  0.01,   0.3,  0.1,    0.1] * range;
 %     kp2,    k1,     k2,     kp1, ki,     ke1,    kmax, kmin,   kabs, kp3,    Vmx  
-lb = [0.0001, 0.0001, 0.0001, 2,   0.0040, 0.0001, 0.01, 0.0001, 0.01, 0.01, 0.001] / 2;
-% 
-% params_to_estimate = {'VG','m1','CL','Vmx','k1','Km0','k2','kp2','kmax','kmin','kabs','ki','u2ss'};
-% nvars = length(params_to_estimate);
-% ub = [2,   0.4,   1.5,    0.1,   0.1,   300, 0.2, 0.01, 0.1,  0.01,   0.3, 0.01, 10] * 1;
-% lb = [1.5, 0.1,   0.5,    0.01,  0.01,  200, 0.05, 0.0001, 0.001, 0.0001, 0.05, 0.0040, 0.1] / 1;
-
-% params_to_estimate = {'VG','m1','CL','Vmx','k1','Km0','k2','kp2','kmax','kmin','kabs'};
-% nvars = length(params_to_estimate);
-% ub = [2,   0.4,   1.5,    0.1,   0.1,   300, 0.2, 0.01,     0.1,  0.01,   0.3] * 3;
-% lb = [1.5, 0.1,   0.5,    0.01,  0.01,  200, 0.05, 0.0001, 0.001, 0.0001, 0.05] / 3;
-
-% params_to_estimate = {'VG','m1','CL','Vmx','k1','Km0','k2','kp2', 'kp1', 'ki'};
-% nvars = length(params_to_estimate);
-% ub = [2,   0.4,   1.5,    0.1,   0.1,   300, 0.2, 0.01,  5, 0.01  ] * 1;
-% lb = [1.5, 0.1,   0.5,    0.01,  0.01,  200, 0.05, 0.0001, 2,  0.0040] / 1;
+lb = [0.0001, 0.0001, 0.0001, 2,   0.0040, 0.0001, 0.01, 0.0001, 0.01, 0.01, 0.001] / range;
 
 
 run('config.m')
@@ -33,10 +19,10 @@ model = non_linear_model(tools);
 window_size = experiment_total_time;
 
 %%
-high_uncertainty = 1000;
+high_uncertainty = 10;
 Q = diag([10,10,10,high_uncertainty,high_uncertainty,high_uncertainty,0,0,0,0,0,0,0]);    % TBD
 % Q = eye(length(state_fields)) * high_uncertainty;
-R = 1000;  % TBD
+R = 100;  % TBD
 ekf_dt = 1; % [min]
 
 ekf = ekf(model, tools, params, ekf_dt, Q, R);
@@ -61,7 +47,7 @@ while t < t_end
         options.InitialPoints = points.X;
     end
     options.Display = 'iter';
-    options.MaxIterations = 200;
+    options.MaxIterations = 50;
     options.FunctionTolerance = 0.0001;
     [final_p,fval,~,~,points] = particleswarm(objective_pso, nvars, lb, ub, options);
 
@@ -117,7 +103,7 @@ function f = objective(p, patient, ekf, patientData, window, params_to_estimate,
                     patientData.BG.time <= window.t_end);
         gt = transpose(patientData.BG.values(idx));
     end
-    % f = mean((predictions/patient.VG - gt).^2);
+    % f = mean((predictions/patient.VG - gt).^2)^(1/2);
     f = mean(abs(log(gt)-log(predictions/patient.VG)));
     % f = mean(abs((predictions/patient.VG - gt)));
 

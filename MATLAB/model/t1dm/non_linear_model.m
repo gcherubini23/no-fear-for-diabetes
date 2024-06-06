@@ -50,30 +50,30 @@ classdef non_linear_model
             
             % Non-linear term Kgut 
             Dbar = y(5) + y(4) * 1000;
-            % if Dbar > 0
-            %     aa = 5 / (2 * (1 - params.b) * Dbar);
-            %     cc = 5 / (2 * params.d * Dbar);
-            %     T1 = tanh(aa * (x(1) + x(2) - params.b * Dbar));
-            %     T2 = tanh(cc * (x(1) + x(2) - params.d * Dbar));
-            %     T3 = x(2) * (params.kmax - params.kmin) / 2 * (aa * (1 - T1^2) + cc * (1 - T2^2));
-            % 
-            %     dQsto2_dQsto1 = params.kgri - T3;
-            %     dQsto2_dQsto2 = -params.kmin - (params.kmax - params.kmin) / 2 * (T1 - T2 + 2) - T3;
-            % 
-            %     dQgut_dQsto1 = T3;
-            %     dQgut_dQsto2 = -dQsto2_dQsto2;
-            %     dQgut_dQgut = -params.kabs;
-            % else
-            %     dQsto2_dQsto1 = params.kgri;
-            %     dQsto2_dQsto2 = -params.kmax;
-            % 
-            %     dQgut_dQsto1 = 0;
-            %     dQgut_dQsto2 = params.kmax;
-            %     dQgut_dQgut = -params.kabs;
-            % end
+            if Dbar > 0
+                aa = 5 / (2 * (1 - params.b) * Dbar);
+                cc = 5 / (2 * params.d * Dbar);
+                T1 = tanh(aa * (x(1) + x(2) - params.b * Dbar));
+                T2 = tanh(cc * (x(1) + x(2) - params.d * Dbar));
+                T3 = x(2) * (params.kmax - params.kmin) / 2 * (aa * (1 - T1^2) + cc * (1 - T2^2));
 
-            dQsto2_dQsto1 = params.kgri;
-            dQsto2_dQsto2 = -params.kmax;
+                dQsto2_dQsto1 = params.kgri - T3;
+                dQsto2_dQsto2 = -params.kmin - (params.kmax - params.kmin) / 2 * (T1 - T2 + 2) - T3;
+
+                dQgut_dQsto1 = T3;
+                dQgut_dQsto2 = -dQsto2_dQsto2;
+                dQgut_dQgut = -params.kabs;
+            else
+                dQsto2_dQsto1 = params.kgri;
+                dQsto2_dQsto2 = -params.kmax;
+
+                dQgut_dQsto1 = 0;
+                dQgut_dQsto2 = params.kmax;
+                dQgut_dQgut = -params.kabs;
+            end
+
+            % dQsto2_dQsto1 = params.kgri;
+            % dQsto2_dQsto2 = -params.kmax;
     
             dQgut_dQsto1 = 0;
             dQgut_dQsto2 = params.kmax;
@@ -126,7 +126,10 @@ classdef non_linear_model
                      0, 0;];
 
 
+            % 2/max(abs(eig(obj.mA)))
+
             % eig(obj.mA)
+            % pause
 
         end
 

@@ -6,7 +6,7 @@
 indices;
 
 use_true_patient = false;
-use_tuned_model = true;
+use_tuned_model = false;
 
 if use_true_patient
     use_anderson = true;
@@ -78,19 +78,21 @@ use_basal_init_conditions = true;
 do_measurment_update = true;
 
 simulate_anomalies = false;
-do_chi_sq_test = true;
+do_chi_sq_test = simulate_anomalies;
 do_cusum_test = false;
+loose_track_of_time = false;
 
 do_plots = true;
 if do_plots
     plot_true_database = false;
-    all_states = true;
+    all_states = false;
     only_Gpd = true;
     plot_anomalies = true;
     plot_complete_history = false;
     show_confidence_interval = true;
     show_future_predictions = true;
     show_pred_improvement = false;
+    save_energy = false;
 end
 
 %% Load data
@@ -109,7 +111,7 @@ if ~use_true_patient
 
     basal = tools.IIRs(1);
 
-    use_true_model = false;
+    use_true_model = true;
     if use_true_model
         params = patient_01(basal);
     else

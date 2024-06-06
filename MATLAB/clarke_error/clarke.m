@@ -82,12 +82,13 @@ n = length(y);
 % ------------------------- Plot Clarke's Error Grid ---------------------------
 h = figure;
 plot(y,yp,'ko','MarkerSize',4,'MarkerFaceColor','k','MarkerEdgeColor','k');
-xlabel('Reference Concentration [mg/dl]');
-ylabel ('Predicted Concentration [mg/dl]');
+xlabel('Reference Concentration [mg/dL]');
+ylabel ('Predicted Concentration [mg/dL]');
 title('Clarke''s Error Grid Analysis');
 set(gca,'XLim',[0 400]);
 set(gca,'YLim',[0 400]);
 axis square
+% annotation('textbox', [0.65, 0.795, 0.1, 0.1], 'String', 'Horizon: 180 min', 'FitBoxToText', 'on', 'BackgroundColor', 'white','FontSize',14);
 hold on
 plot([0 400],[0 400],'k:')                  % Theoretical 45º regression line
 plot([0 175/3],[70 70],'k-')
@@ -105,22 +106,23 @@ plot([180 400],[70 70],'k-')
 plot([240 240],[70 180],'k-')
 plot([240 400],[180 180],'k-')
 plot([130 180],[0 70],'k-')                 % Lower B-C boundary slope OK
-text(30,20,'A','FontSize',12);
-text(30,150,'D','FontSize',12);
-text(30,380,'E','FontSize',12);
-text(150,380,'C','FontSize',12);
-text(160,20,'C','FontSize',12);
-text(380,20,'E','FontSize',12);
-text(380,120,'D','FontSize',12);
-text(380,260,'B','FontSize',12);
-text(280,380,'B','FontSize',12);
+text(30,20,'A','FontSize',14);
+text(30,150,'D','FontSize',14);
+text(30,380,'E','FontSize',14);
+text(150,380,'C','FontSize',14);
+text(160,20,'C','FontSize',14);
+text(380,20,'E','FontSize',14);
+text(380,120,'D','FontSize',14);
+text(380,260,'B','FontSize',14);
+text(280,380,'B','FontSize',14);
 set(h, 'color', 'white');                   % sets the color to white 
 % % Specify window units
 % set(h, 'units', 'inches')
 % % Change figure and paper size (Fixed to 3x3 in)
 % set(h, 'Position', [0.1 0.1 3 3])
 % set(h, 'PaperPosition', [0.1 0.1 3 3])
-set(h, 'Position', get(0, 'Screensize'));
+% set(h, 'Position', get(0, 'Screensize'));
+set(gca, 'FontSize', 14);
 if PRINT_FIGURE
     % Saves plot as a Enhanced MetaFile
     % print(h,'-dmeta','Clarke_EGA');           

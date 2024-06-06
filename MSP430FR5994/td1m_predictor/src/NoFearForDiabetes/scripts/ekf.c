@@ -23,12 +23,20 @@ float mH[STATE_SPACE] = { 0 };
 //#pragma CODE_SECTION(init_ekf, ".ramfunc")
 void init_ekf() {
     float v_g = fr(&params[VG]);
-    fw(&mQ[Q_STO1][Q_STO1], MODEL_COV * 0.01);
-    fw(&mQ[Q_STO2][Q_STO2], MODEL_COV * 0.01);
-    fw(&mQ[Q_GUT][Q_GUT], MODEL_COV * 0.01);
+    fw(&mQ[Q_STO1][Q_STO1], MODEL_COV);
+    fw(&mQ[Q_STO2][Q_STO2], MODEL_COV);
+    fw(&mQ[Q_GUT][Q_GUT], MODEL_COV);
     fw(&mQ[G_P][G_P], MODEL_COV);
     fw(&mQ[G_T][G_T], MODEL_COV);
     fw(&mQ[G_SC][G_SC], MODEL_COV);
+    fw(&mQ[I_L][I_L], MODEL_COV);
+    fw(&mQ[I_P][I_P], MODEL_COV);
+    fw(&mQ[I_1][I_1], MODEL_COV);
+    fw(&mQ[I_D][I_D], MODEL_COV);
+    fw(&mQ[X][X], MODEL_COV);
+    fw(&mQ[I_SC1][I_SC1], MODEL_COV);
+    fw(&mQ[I_SC2][I_SC2], MODEL_COV);
+
 
     fw(&mR, SENSOR_COV);
 
@@ -86,13 +94,11 @@ void measurement_update(float x[STATE_SPACE], float P[STATE_SPACE][STATE_SPACE],
     for(i = 0; i < STATE_SPACE; i++) {
         for(j = 0; j < STATE_SPACE; j++) {
             eye[i][j] -= K[i] * H[j];
-            KRK[i][j] = K[i] * r * K[j];
         }
     }
     SquareMatrixMultiply(eye, P, temp);
     SquareMatrixTranspose(eye, eyet);
     SquareMatrixMultiply(temp, eyet, P);
-    SquareMatrixAdd(P, KRK);
 }
 
 //#pragma CODE_SECTION(predict, ".ramfunc")

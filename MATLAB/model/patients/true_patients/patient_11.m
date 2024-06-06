@@ -76,6 +76,9 @@ classdef patient_11
             obj.Ipb = obj.u2ss / (obj.m2 + obj.m4 - obj.m1 * obj.m2 / (obj.m1 + obj.m30));  % basal insulin in plasma
             obj.Ilb = obj.m2 / (obj.m1 + obj.m30) * obj.Ipb;
             obj.Ib = obj.Ipb / obj.VI;
+            % obj.Ipb = 0;
+            % obj.Ilb = 0;
+            % obj.Ib = 0;
             obj.kgri = obj.kmax;
             obj.Gpb = obj.Gb * obj.VG; % basal glucose in plasma
             obj.EGPb = obj.kp1 - obj.kp2 * obj.Gpb - obj.kp3 * obj.Ib;
@@ -94,6 +97,9 @@ classdef patient_11
             obj.Ipb = obj.u2ss / (obj.m2 + obj.m4 - obj.m1 * obj.m2 / (obj.m1 + obj.m30));  % basal insulin in plasma
             obj.Ilb = obj.m2 / (obj.m1 + obj.m30) * obj.Ipb;
             obj.Ib = obj.Ipb / obj.VI;
+            % obj.Ipb = 0;
+            % obj.Ilb = 0;
+            % obj.Ib = 0;
             obj.kgri = obj.kmax;
             obj.Gpb = obj.Gb * obj.VG; % basal glucose in plasma
             obj.EGPb = obj.kp1 - obj.kp2 * obj.Gpb - obj.kp3 * obj.Ib;

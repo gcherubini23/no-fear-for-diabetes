@@ -70,20 +70,22 @@ end
 if only_Gpd
 
     figure
+    ms = 6;
     
     if show_confidence_interval
-        name = 'EKF Track \pm 2\sigma';
+        name = 'Tracking \pm 2\sigma';
     else
-        name = 'EKF Track';
+        name = 'Tracking';
     end
 
-    plot(EKF_state_tracking.time, ekf.H * EKF_state_tracking.mean, '-', 'DisplayName', name, 'LineWidth', 1, 'Color', 'm');
+    plot(EKF_state_tracking.time, ekf.H * EKF_state_tracking.mean, '-', 'DisplayName', name, 'LineWidth', 2, 'Color', 'm');
     hold on
     if ~use_true_patient
         plot(tools.Time, tools.BGs, 'b-', 'DisplayName', 'Ground truth', 'LineWidth', 1);
         hold on
     end
-    plot(patientData.CGM.time, patientData.CGM.values, 'o', 'DisplayName', 'CGM', 'Color', 'cyan', 'MarkerSize', 4)
+    % plot(patientData.CGM.time, patientData.CGM.values, '-o', 'DisplayName', 'CGM', 'Color', 'cyan', 'MarkerSize', 8)
+    plot(patientData.CGM.time, patientData.CGM.values, '-o', 'DisplayName', 'CGM', 'Color', 'cyan', 'LineWidth', 1, 'MarkerSize', ms)
     hold on
 
     if show_confidence_interval
@@ -99,12 +101,12 @@ if only_Gpd
     end
     
     if plot_anomalies
-        plot(anomaly_detector.time, anomaly_detector.anomalies, 'o','DisplayName', 'Anomalies', 'Color', [1 0 0], 'MarkerSize', 4)
-        hold on
         if simulate_anomalies
-            plot(true_CGM.time, true_CGM.values, 'o', 'Color', "#C0C0C0", 'MarkerSize', 4, 'HandleVisibility', 'off')
+            plot(true_CGM.time, true_CGM.values, 'o', 'Color', "#C0C0C0", 'MarkerSize', ms, 'HandleVisibility', 'off')
             hold on
         end
+        plot(anomaly_detector.time, anomaly_detector.anomalies, 'o','DisplayName', 'Anomalies', 'Color', [1 0 0], 'MarkerSize', ms, 'MarkerFaceColor', [1 0 0])
+        hold on
     end
 
 
@@ -118,11 +120,11 @@ if only_Gpd
             
         else
             if show_confidence_interval
-                name = 'EKF Pred \pm 2\sigma';
+                name = 'Prediction \pm 2\sigma';
             else
-                name = 'EKF Pred';
+                name = 'Prediction';
             end
-            plot(future_predictions.time, ekf.H * future_predictions.values, 'x', 'DisplayName', name, 'LineWidth', 1, 'Color', "#77AC30")
+            plot(future_predictions.time, ekf.H * future_predictions.values, '-', 'DisplayName', name, 'LineWidth', 2, 'Color', "#77AC30")
             hold on
             if show_confidence_interval
                 gamma = 2;
@@ -140,8 +142,22 @@ if only_Gpd
     
     legend show;
     xlim([t_start t_end]);
-    ylim([-0.5, 400]);
+    ylim([-0.5, 350]);
     set(gcf, 'Position', get(0, 'Screensize'));
+    xlabel('Time')
+    ylabel('Plasma Glucose Concentration [mg/dL]')
+    if do_measurment_update
+        if do_chi_sq_test || do_cusum_test
+            title('Glucose Estimator Anomaly Detection')
+        elseif show_future_predictions
+            title('Glucose Estimator Tracking and Prediction')
+        else
+            title('Glucose Estimator Tracking')
+        end
+    else
+        title('Process Model Performance');
+    end
+    set(gca, 'FontSize', 14)
 end
 
 if plot_complete_history
@@ -177,3 +193,42 @@ if plot_complete_history
     set(gcf, 'Position', get(0, 'Screensize'));
 
 end
+
+% 
+% if false
+% 
+%     figure
+%     plot(EKF_state_tracking.time, EKF_state_tracking.mean(8,:), 'g-');
+%     ylabel('Ip [pmol/kg]');
+%     xlim([t_start t_end]);
+% 
+% end
+
+%%
+
+if ~show_pred_improvement  
+    [total, percentage] = clarke(CGM_to_check,predictions_to_check);
+
+    figure
+    areas = {'A','B','C','D','E'};
+    colors = [53,255,22;
+              22,161,0;
+              240,255,6;
+              250,168,3;
+              255,0,0]/255;
+
+    b = bar(areas, percentage, 'facecolor', 'flat');
+    b.CData = colors;
+    xlabel('Areas');
+    ylabel('Percentage');
+    title('Clarke''s Error Grid Percentage')
+    % annotation('textbox', [0.65, 0.795, 0.1, 0.1], 'String', 'Horizon: 180 min', 'FitBoxToText', 'on', 'BackgroundColor', 'white', 'FontSize', 14);
+    set(gca, 'FontSize', 14);
+    % set(gca,'XLim',[1, 4]);
+    set(gca,'YLim',[0 100]);
+    axis square
+
+    % [0.75, 0.895, 0.1, 0.1]
+end
+
+
