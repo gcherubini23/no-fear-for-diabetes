@@ -24,10 +24,10 @@ if use_tuned_model
 end
 
 
-Q = eye(length(state_fields)) * uncertainty;
+Q = eye(13) * uncertainty;
 R = 100;
 
-ekf_dt = 2.3;
+ekf_dt = 2;
 
 model = non_linear_model(tools);
 ekf = ekf(model, tools, params, ekf_dt, Q, R);
@@ -35,7 +35,6 @@ ekf.dt = ekf_dt;
 ekf.CGM_MARD = MARD;
 
 anomaly_detector = anomaly_detector(alpha);
-
 
 [x0, y_minus1] = tools.init_conditions(params);
 u0 = [0,0];
@@ -50,8 +49,7 @@ x = x0;
 y = y_minus1;
 u = u0;
 last_process_update = t_start;
-P0 = eye(length(state_fields)) * 12000;
-% P0 = Q * 6000;
+P0 = eye(13) * 12000;
 P = P0;
 
 used_measurement.z = [];
@@ -134,22 +132,38 @@ fault_mean = fault_mean / length(faulty_measurement.z)
 [sensitivity, specificity] = compute_sensitivity_specificity(faulty_measurement, patientData, anomaly_detector);
 
 %% Plot
-close all
-
 figure
-ms = 6;
 
-name = 'Tracking \pm 2\sigma';
+ms = 3;
+lw = 0.5;
 
-plot(EKF_state_tracking.time, ekf.H * EKF_state_tracking.mean, '-', 'DisplayName', name, 'LineWidth', 2, 'Color', 'm');
+images = [];
+
+font_size = 10;
+figureWidth = 5.7;
+figureHeight = 4;
+set(gcf, 'Units', 'inches');
+set(gcf, 'Position', [1, 1, figureWidth, figureHeight]);
+set(gcf, 'PaperUnits', 'inches');
+set(gcf, 'PaperSize', [figureWidth, figureHeight]);
+set(gcf, 'PaperPositionMode', 'auto');
+
+lables = {'CGM', 'Tracking \pm 2\sigma'};
+colors = {'m', 'cyan', [1 0 0], [18, 174, 0]/255, 'k'};
+
+subplot(4, 1, [1 3]);
+
+images(end+1) = plot(used_measurement.t, used_measurement.z, '-o', 'Color', colors{2}, 'LineWidth', lw, 'MarkerSize', ms, 'MarkerFaceColor', colors{2});
 hold on
 
-% plot(patientData.CGM.time, patientData.CGM.values, '-o', 'DisplayName', 'CGM', 'Color', 'cyan', 'LineWidth', 1, 'MarkerSize', ms)
-plot(used_measurement.t, used_measurement.z, '-o', 'DisplayName', 'CGM', 'Color', 'cyan', 'LineWidth', 1, 'MarkerSize', ms)
+images(end+1) = plot(EKF_state_tracking.time, ekf.H * EKF_state_tracking.mean, '-', 'LineWidth', 2*lw, 'Color', colors{1});
 hold on
 
-plot(faulty_measurement.t, faulty_measurement.z, 'o', 'DisplayName', 'Anomaly not detected', 'Color', 'blue', 'MarkerSize', ms, 'MarkerFaceColor',[0 0 1])
-hold on
+if ~isempty(faulty_measurement.t)
+    lables(end+1) = {'Anomaly not detected'};
+    images(end+1) = plot(faulty_measurement.t, faulty_measurement.z, 'o', 'Color', colors{3}, 'MarkerSize', ms, 'MarkerFaceColor',colors{3});
+    hold on
+end
 
 if show_confidence_interval
     gamma = 2;
@@ -164,8 +178,11 @@ if show_confidence_interval
 end
 
 if plot_anomalies
-    plot(anomaly_detector.time, anomaly_detector.anomalies, 'o','DisplayName', 'Anomaly detected', 'Color', [18, 174, 0]/255, 'MarkerSize', ms, 'MarkerFaceColor', [18, 174, 0]/255)
-    hold on
+    if ~isempty(anomaly_detector.time)
+        lables(end+1) = {'Anomaly detected'};
+        images(end+1) = plot(anomaly_detector.time, anomaly_detector.anomalies, 'o', 'Color', colors{4}, 'MarkerSize', ms, 'MarkerFaceColor', colors{4});
+        hold on
+    end
 
     false_positives.values = [];
     false_positives.time = datetime([], 'ConvertFrom', 'posixtime', 'Format', 'dd-MMM-yyyy HH:mm:ss');
@@ -182,19 +199,62 @@ if plot_anomalies
         end
     end
     
-    plot(false_positives.time, false_positives.values, 'o','DisplayName', 'False Positive', 'Color', [1 0 0], 'MarkerSize', ms, 'MarkerFaceColor', [1 0 0])
-    hold on
+    if ~isempty(false_positives.time)
+        lables(end+1) = {'False Positive'};
+        images(end+1) = plot(false_positives.time, false_positives.values, 'o','DisplayName', 'False Positive', 'Color', colors{5}, 'MarkerSize', ms, 'MarkerFaceColor', colors{5});
+        hold on
+    end
 end
 
 
-legend show;
+lgd = legend(images, lables);
+lgd.Location = 'northoutside';
+lgd.Orientation = 'horizontal';
+lgd.Box = 'off';
+lgd.NumColumns = 2;
+
 xlim([t_start t_end]);
-ylim([-0.5, 350]);
-set(gcf, 'Position', get(0, 'Screensize'));
-xlabel('Time')
-ylabel('Plasma Glucose Concentration [mg/dL]')
+ylim([40, 300]);
+ylabel('G [mg/dL]')
+
 title('Glucose Estimator Anomaly Detection')
-set(gca, 'FontSize', 14)
+
+
+subplot(4, 1, 4);  % Allocate 1/3 space for the subplot
+
+yyaxis right;
+u2 = stem(patientData.IIR.time, patientData.IIR.values, 'filled', 'o', 'Color', [251,142,2]/255,'MarkerSize', 2, 'LineWidth', lw);
+ylabel('Insulin [IU]');
+if use_true_patient
+    ylim([0,7])
+else
+    ylim([0,15])
+end
+xlim([t_start, t_end])
+hold on
+ax = gca;
+ax.YColor = 'k'; % Set color of left y-axis to black
+
+yyaxis left;
+u1 = stem(patientData.Meal.time, patientData.Meal.values, 'filled', 'square', 'Color', 'g','MarkerSize', 2, 'LineWidth', lw);
+ylabel('CHO [g]');
+if use_true_patient
+    ylim([0,60])
+else
+    ylim([0,90])
+end
+xlim([t_start, t_end])
+ax = gca;
+ax.YColor = 'k';
+
+xlabel('Time');
+lgd2 = legend([u1,u2], {'Meal', 'Insulin infused'});
+lgd2.Location = 'northoutside';
+lgd2.Orientation = 'horizontal';
+lgd2.Box = 'off';
+
+set(findall(gcf, '-property', 'FontSize'), 'FontSize', font_size);
+
 
 %% Function
 

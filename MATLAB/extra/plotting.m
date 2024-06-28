@@ -114,7 +114,7 @@ if only_Gpd
         if show_pred_improvement
             for i = 1:length(trajectories)
                 traj = trajectories{i};
-                plot(traj.time, traj.values/params.VG, '-', 'LineWidth', 1, 'Color', "#C0C0C0", 'HandleVisibility', 'off')
+                plot(traj.time, traj.values, '-', 'LineWidth', 1, 'Color', "#C0C0C0", 'HandleVisibility', 'off')
                 hold on
             end
             
@@ -139,6 +139,27 @@ if only_Gpd
             end
         end
     end
+
+
+    
+    legend_position = [1-0.18, 0.85];
+    
+
+    x_range = xlim;
+    y_range = ylim;
+    
+    % Define the normalized position for the horizon segment
+    x1 = x_range(1) + (x_range(2) - x_range(1)) * legend_position(1);
+    x2 = x1 + minutes(horizon);
+    y = y_range(1) + (y_range(2) - y_range(1)) * legend_position(2);
+    
+    % Add the segment
+    line([x1 x2], [y y], 'Color', 'r', 'LineWidth', 2, 'HandleVisibility', 'off');
+    
+    % Add the text label for the horizon
+    text(x2+minutes(100) , y, sprintf('%d minutes', horizon), 'Color', 'r', 'HorizontalAlignment', 'center','FontSize',14);
+
+
     
     legend show;
     xlim([t_start t_end]);
@@ -207,7 +228,7 @@ end
 %%
 
 if ~show_pred_improvement  
-    [total, percentage] = clarke(CGM_to_check,predictions_to_check);
+    [total, percentage] = colored_clarke(CGM_to_check,predictions_to_check, horizon);
 
     figure
     areas = {'A','B','C','D','E'};

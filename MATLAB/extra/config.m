@@ -15,7 +15,7 @@ if use_true_patient
 
     if use_anderson
         patient_ID = 11;
-        dailyBasal = 18;
+        dailyBasal = 16.9;
         date = '11-Feb-2013 06:30:00';
         % date = '26-Jan-2013 06:30:00';
         days_to_examine = 2;
@@ -77,7 +77,7 @@ end
 use_basal_init_conditions = true;
 do_measurment_update = true;
 
-simulate_anomalies = false;
+simulate_anomalies = true;
 do_chi_sq_test = simulate_anomalies;
 do_cusum_test = false;
 loose_track_of_time = false;
@@ -85,12 +85,22 @@ loose_track_of_time = false;
 do_plots = true;
 if do_plots
     plot_true_database = false;
-    all_states = false;
+    all_states = true;
     only_Gpd = true;
     plot_anomalies = true;
     plot_complete_history = false;
     show_confidence_interval = true;
-    show_future_predictions = true;
+    show_future_predictions = false;
+    show_pred_improvement = false;
+    save_energy = false;
+else
+    plot_true_database = false;
+    all_states = false;
+    only_Gpd = false;
+    plot_anomalies = false;
+    plot_complete_history = false;
+    show_confidence_interval = false;
+    show_future_predictions = false;
     show_pred_improvement = false;
     save_energy = false;
 end
@@ -111,7 +121,7 @@ if ~use_true_patient
 
     basal = tools.IIRs(1);
 
-    use_true_model = true;
+    use_true_model = false;
     if use_true_model
         params = patient_01(basal);
     else

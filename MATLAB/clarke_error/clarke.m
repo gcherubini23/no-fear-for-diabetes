@@ -88,7 +88,6 @@ title('Clarke''s Error Grid Analysis');
 set(gca,'XLim',[0 400]);
 set(gca,'YLim',[0 400]);
 axis square
-% annotation('textbox', [0.65, 0.795, 0.1, 0.1], 'String', 'Horizon: 180 min', 'FitBoxToText', 'on', 'BackgroundColor', 'white','FontSize',14);
 hold on
 plot([0 400],[0 400],'k:')                  % Theoretical 45º regression line
 plot([0 175/3],[70 70],'k-')

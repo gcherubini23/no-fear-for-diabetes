@@ -2,24 +2,19 @@ close all
 clear
 clc
 
-
 rng(42, 'twister');
 
 %% Initialization
 run('config.m')
 
-which_metric = 3;
-% 1 for sensitivity
-% 2 for specificity
-% 3 for youden's index
-
 mard_intervals = 0:1:30;
-uncertainty_intervals = 0:1:30;
+uncertainty_intervals = 0:1:50;
 
 simulate_anomalies = true;
 show_confidence_interval = true;
 do_chi_sq_test = simulate_anomalies;
 
+% how_often = 0.2;
 how_often = 0.05;
 alpha = 0.05;
 fault_reduce_factor = 4;
@@ -31,10 +26,10 @@ end
 uncertainty = 30;
 % MARD = 10;
 
-Q = eye(length(state_fields)) * uncertainty;
+Q = eye(13) * uncertainty;
 R = 100;
 
-ekf_dt = 2.3;
+ekf_dt = 2;
 
 model = non_linear_model(tools);
 ekf = ekf(model, tools, params, ekf_dt, Q, R);
@@ -47,84 +42,79 @@ anomaly_detector = anomaly_detector(alpha);
 
 [X, Y] = meshgrid(mard_intervals, uncertainty_intervals);
 
-Z = arrayfun(@(MARD, uncertainty) evaluate_EKF_params(MARD, uncertainty, how_often, fault_reduce_factor, ekf, anomaly_detector, patientData, x0, y_minus1, t_start, t_end, params, which_metric),X,Y);
+results = arrayfun(@(MARD, uncertainty) evaluate_EKF_params(MARD, uncertainty, how_often, fault_reduce_factor, ekf, anomaly_detector, patientData, x0, y_minus1, t_start, t_end, params), X, Y);
+
+Z_sensitivity = reshape([results.sensitivity], size(X));
+Z_specificity = reshape([results.specificity], size(X));
+Z_youden = reshape([results.youden], size(X));
 
 %% Plotting
 close all
+clc
 
-contourf(Y, X, Z, 'LineColor', 'none');
+font_size = 22;
+figureWidth = 5.7;
+figureHeight = figureWidth;
 
+% Sensitivity
+figure;
+set(gcf, 'Units', 'inches');
+set(gcf, 'Position', [1, 1, figureWidth, figureHeight]);
+set(gcf, 'PaperUnits', 'inches');
+set(gcf, 'PaperSize', [figureWidth, figureHeight]);
+set(gcf, 'PaperPositionMode', 'auto');
+contourf(Z_sensitivity, 'LineColor', 'none');
 colormap('jet')
 caxis([0 1]);
-
 h = colorbar;
 set(h, 'Limits', [0 1]);
+xlabel('MARD (R)');
+ylabel('Uncertainty (Q)');
+title('Sensitivity');
+axis square;
+set(findall(gcf, '-property', 'FontSize'), 'FontSize', font_size);
 
-xlabel('MARD');
-ylabel('Q uncertainty');
+% Specificity
+figure;
+set(gcf, 'Units', 'inches');
+set(gcf, 'Position', [1, 1, figureWidth, figureHeight]);
+set(gcf, 'PaperUnits', 'inches');
+set(gcf, 'PaperSize', [figureWidth, figureHeight]);
+set(gcf, 'PaperPositionMode', 'auto');
+contourf(Z_specificity, 'LineColor', 'none');
+colormap('jet')
+caxis([0 1]);
+h = colorbar;
+set(h, 'Limits', [0 1]);
+xlabel('MARD (R)');
+ylabel('Uncertainty (Q)');
+title('Specificity');
+axis square;
+set(findall(gcf, '-property', 'FontSize'), 'FontSize', font_size);
 
 
-if which_metric == 1
-    title('Sensitivity');
-elseif which_metric == 2
-    title('Specificity');
-else
-    title('Youden''s Index')
-end
-
-set(gca, 'FontSize', 14)
-axis square
+% Youden's Index
+figure;
+set(gcf, 'Units', 'inches');
+set(gcf, 'Position', [1, 1, figureWidth, figureHeight]);
+set(gcf, 'PaperUnits', 'inches');
+set(gcf, 'PaperSize', [figureWidth, figureHeight]);
+set(gcf, 'PaperPositionMode', 'auto');
+contourf(Z_youden, 'LineColor', 'none');
+colormap('jet')
+caxis([0 1]);
+h = colorbar;
+set(h, 'Limits', [0 1]);
+xlabel('MARD (R)');
+ylabel('Uncertainty (Q)');
+title('Youden''s Index');
+axis square;
+set(findall(gcf, '-property', 'FontSize'), 'FontSize', font_size);
 
 
 %% Function
 
-function [sensitivity, specificity] = compute_sensitivity_specificity(faulty_measurement, patientData, anomaly_detector)
-    % Initialize counts
-    TP = 0; % True Positives
-    FP = 0; % False Positives
-    TN = 0; % True Negatives
-    FN = 0; % False Negatives
-
-    % Get the unique times for comparison
-    all_times = unique([faulty_measurement.t'; patientData.CGM.time; anomaly_detector.time]);
-
-    % Loop through each time and classify
-    for i = 1:length(all_times)
-        t = all_times(i);
-
-        % Check if time t is in faulty_measurement
-        is_faulty = ismember(t, faulty_measurement.t);
-
-        % Check if time t is in anomaly_detector
-        is_anomaly = ismember(t, anomaly_detector.time);
-
-        % Check if time t is in original dataset
-        is_in_data = ismember(t, patientData.CGM.time);
-
-        if is_in_data
-            if is_faulty && is_anomaly
-                TP = TP + 1;
-            elseif ~is_faulty && is_anomaly
-                FP = FP + 1;
-            elseif ~is_faulty && ~is_anomaly
-                TN = TN + 1;
-            elseif is_faulty && ~is_anomaly
-                FN = FN + 1;
-            end
-        end
-    end
-
-    % Calculate sensitivity and specificity
-    sensitivity = TP / (TP + FN);
-    specificity = TN / (TN + FP);
-
-    % Display results
-    % disp(['Sensitivity: ', num2str(sensitivity)]);
-    % disp(['Specificity: ', num2str(specificity)]);
-end
-
-
-function s = evaluate_EKF_params(uncertainty, MARD, how_often, fault_reduce_factor, ekf, anomaly_detector, patientData, x0, y_minus1, t_start, t_end, params, which_metric)
+function result = evaluate_EKF_params(MARD, uncertainty, how_often, fault_reduce_factor, ekf, anomaly_detector, patientData, x0, y_minus1, t_start, t_end, params)
     
     ekf.CGM_MARD = MARD;
     ekf.Q = eye(13)*uncertainty;
@@ -205,11 +195,54 @@ function s = evaluate_EKF_params(uncertainty, MARD, how_often, fault_reduce_fact
 
     [sensitivity, specificity] = compute_sensitivity_specificity(faulty_measurement, patientData, anomaly_detector);
     
-    if which_metric == 1
-        s = sensitivity;
-    elseif which_metric == 2
-        s = specificity;
-    else   
-        s = sensitivity + specificity - 1;
+    youden = sensitivity + specificity - 1;
+    
+    result.sensitivity = sensitivity;
+    result.specificity = specificity;
+    result.youden = youden;
+end
+
+function [sensitivity, specificity] = compute_sensitivity_specificity(faulty_measurement, patientData, anomaly_detector)
+    % Initialize counts
+    TP = 0; % True Positives
+    FP = 0; % False Positives
+    TN = 0; % True Negatives
+    FN = 0; % False Negatives
+
+    % Get the unique times for comparison
+    all_times = unique([faulty_measurement.t'; patientData.CGM.time; anomaly_detector.time]);
+
+    % Loop through each time and classify
+    for i = 1:length(all_times)
+        t = all_times(i);
+
+        % Check if time t is in faulty_measurement
+        is_faulty = ismember(t, faulty_measurement.t);
+
+        % Check if time t is in anomaly_detector
+        is_anomaly = ismember(t, anomaly_detector.time);
+
+        % Check if time t is in original dataset
+        is_in_data = ismember(t, patientData.CGM.time);
+
+        if is_in_data
+            if is_faulty && is_anomaly
+                TP = TP + 1;
+            elseif ~is_faulty && is_anomaly
+                FP = FP + 1;
+            elseif ~is_faulty && ~is_anomaly
+                TN = TN + 1;
+            elseif is_faulty && ~is_anomaly
+                FN = FN + 1;
+            end
+        end
     end
+
+    % Calculate sensitivity and specificity
+    sensitivity = TP / (TP + FN);
+    specificity = TN / (TN + FP);
+
+    % Display results
+    % disp(['Sensitivity: ', num2str(sensitivity)]);
+    % disp(['Specificity: ', num2str(specificity)]);
 end

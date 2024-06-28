@@ -14,16 +14,14 @@ end
 
 horizon = 30;
 
-
-% Anderson Q: p11 = 30; p17 = 150
-
-% high_uncertainty = 150;
+MARD = 8;
 high_uncertainty = 30;
-% high_uncertainty = 10;
+
+
 Q = eye(length(state_fields)) * high_uncertainty;
 R = 100;
 
-ekf_dt = 2.3; % [min]
+ekf_dt = 1; % [min]
 % ekf_dt = 2.5;
 
 bounds = [100, 150] * params.VG;
@@ -31,6 +29,8 @@ bounds = [100, 150] * params.VG;
 model = non_linear_model(tools);
 ekf = ekf(model, tools, params, ekf_dt, Q, R);
 ekf.dt = ekf_dt;
+
+ekf.CGM_MARD = MARD;
 
 alpha = 0.05;
 anomaly_detector = anomaly_detector(alpha);
@@ -84,10 +84,10 @@ if simulate_anomalies
     true_CGM.time = [true_CGM.time, patientData.CGM.time(idxs)'];
     patientData.CGM.values(idxs) = 0;
 
-    spikes_fractions = [15/16, 2/3, 1/6, 9/16, 11/16, 1/2];
-    spikes_values = [180, 200, 30, 170, 350, 250];
-    % spikes_fractions = [];
-    % spikes_values = [];
+    % spikes_fractions = [15/16, 2/3, 1/6, 9/16, 11/16, 1/2];
+    % spikes_values = [180, 200, 30, 170, 350, 250];
+    spikes_fractions = [];
+    spikes_values = [];
 
     for i = 1:length(spikes_values)
         idx = floor(length(patientData.CGM.values)*spikes_fractions(i));
@@ -205,10 +205,12 @@ end
 
 if ~show_pred_improvement  
     rmse = mean((predictions_to_check - CGM_to_check).^2)^(1/2)
-    T_s = convert_to_minutes(mean(diff(times_to_check)));
+    % T_s = convert_to_minutes(mean(diff(times_to_check)));
+    T_s = 5;
     tau = delay(CGM_to_check, predictions_to_check);
     horizon
-    Delay = abs(tau) * T_s
+    Delay = abs(tau) * T_s;
+    TG = horizon - Delay
 
 end
 

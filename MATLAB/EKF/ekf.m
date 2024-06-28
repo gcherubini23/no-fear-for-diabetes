@@ -157,14 +157,7 @@ classdef ekf
         end
 
         function obj = update_sensor_cov(obj, z)
-            % m = (obj.CGM_MARD / 100 * z) * (obj.CGM_MARD / 100 * z)
-            % obj.R = max((obj.CGM_MARD / 100 * z / 2)^2, 80);
-
-            % r = (obj.CGM_MARD / 100 * z / 2)^2;
-
             obj.R = (obj.CGM_MARD / 100 * z)^2;
-
-            % obj.R = (obj.CGM_MARD / 100 * z / 2)^2;
         end
 
         function obj = set_covariances(obj, MARD, uncertainty)

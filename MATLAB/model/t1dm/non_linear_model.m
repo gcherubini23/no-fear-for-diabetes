@@ -126,9 +126,8 @@ classdef non_linear_model
                      0, 0;];
 
 
-            % 2/max(abs(eig(obj.mA)))
-
             % eig(obj.mA)
+            % 2/max(abs(eig(obj.mA)))
             % pause
 
         end
@@ -242,7 +241,7 @@ classdef non_linear_model
             dGt_dt = -Uidt + params.k1 * x(4) - params.k2 * x(5);
         
             % Subcutaneous glucose
-            dGsc_dt = -1/params.Td * x(6) + 1/params.Td * x(4);
+            dGsc_dt = -1/params.Td * x(6) + 1/(params.Td) * x(4);
 
         end
         

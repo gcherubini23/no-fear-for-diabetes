@@ -6,6 +6,33 @@ rng default;
 %% INIT
 use_true_patient = false;
 use_CGM_to_compare = true;
+plot_model = true;
+
+ms = 2;
+lw = 0.5;
+
+figure
+
+if plot_model
+    if use_true_patient
+        lables = {'CGM' 'Untuned' 'MAP-Tuned' 'PSO-Tuned'};
+    else
+        lables = {'CGM' 'True' 'Untuned' 'MAP-Tuned' 'PSO-Tuned'};
+    end
+else
+    lables = {'CGM'};
+end
+
+
+font_size = 10;
+figureWidth = 5.7;
+figureHeight = 4;
+set(gcf, 'Units', 'inches');
+set(gcf, 'Position', [1, 1, figureWidth, figureHeight]);
+set(gcf, 'PaperUnits', 'inches');
+set(gcf, 'PaperSize', [figureWidth, figureHeight]);
+set(gcf, 'PaperPositionMode', 'auto');
+
 
 disp('Loading dataset...')
 if use_true_patient
@@ -14,7 +41,7 @@ if use_true_patient
     use_shanghai = false;
     plot_true_database = false;
     patient_ID = 11;
-    dailyBasal = 18;
+    dailyBasal = 16.9;
     date = '11-Feb-2013 06:30:00';
     % date = '26-Jan-2013 06:30:00';
     days_to_examine = 2;
@@ -46,15 +73,6 @@ t_end = max([max(patientData.CGM.time), max(patientData.Meal.time), max(patientD
 experiment_total_time = t_end - t_start;
 
 
-% if use_tuned_model
-%     if use_true_patient
-%         run('true_p.m')
-%     else
-%         run('virtual_p.m')
-%     end
-% end
-
-
 high_uncertainty = 10;
 Q = eye(13) * high_uncertainty;
 R = 100;
@@ -65,13 +83,26 @@ model = non_linear_model(tools);
 ekf = ekf(model, tools, params, ekf_dt, Q, R);
 
 RMSE = [];
-figure
+images = [];
+
+colors = [76, 8, 243;
+          199, 0, 57;
+          15, 169, 46]/255;
+
+subplot(4, 1, [1 3]);
+
+images(end+1) = plot(patientData.CGM.time, patientData.CGM.values, '-o', 'Color', 'cyan', 'LineWidth', lw, 'MarkerSize', ms, 'MarkerFaceColor', 'cyan');
+hold on
+
+if ~use_true_patient
+    images(end+1) = plot(patientData.BG.time, patientData.BG.values, '-', 'Color', [255, 213, 0]/255, 'LineWidth', 2*lw);
+end
 
 for i = 1:3
 
     
     if i == 1
-
+      
     else
         if use_true_patient
             run('true_p.m')
@@ -137,26 +168,80 @@ for i = 1:3
             
     end
     
-    plot(EKF_state_tracking.time, EKF_state_tracking.mean, 'LineWidth', 1.5)
-    hold on
+    if plot_model
+        images(end+1) = plot(EKF_state_tracking.time, EKF_state_tracking.mean, 'LineWidth', 2*lw, 'Color', colors(i,:));
+        hold on
+    end
     RMSE(end+1) = mean((EKF_state_tracking.mean - gt).^2)^(1/2);
 
 end
 
 RMSE
-plot(EKF_state_tracking.time, gt, '-o', 'Color', 'cyan', 'LineWidth', 0.8)
+   
+lgd = legend(images, lables);
+lgd.Location = 'northoutside';
+lgd.Orientation = 'horizontal';
+lgd.Box = 'off';
 
-legend 'Untuned' 'MAP-Tuned' 'PSO-Tuned' 'CGM'
+if ~use_true_patient
+    lgd.NumColumns = 3;
+end
+
 
 xlim([t_start, t_end])
-if use_true_patient
-    title('True Patient - Model Comparison')
-else
-    title('In-Silico Patient - Model Comparison')
-    ylim([40,250])
+if plot_model
+    if use_true_patient
+        ylim([40,300])
+    else
+        ylim([40,250])
+    end
 end
-xlabel('Time')
-ylabel('Plasma Glucose Concentration [mg/dL]')
-set(gca, 'FontSize', 14)
+ylabel('G [mg/dL]')
 
-disp("Done");
+
+if use_true_patient && plot_model
+    title('True Patient - Model Comparison')
+elseif ~use_true_patient && plot_model
+    title('Simulated Patient - Model Comparison')
+else
+    title('True Patient one-day data')
+end
+
+%%
+
+subplot(4, 1, 4);  % Allocate 1/3 space for the subplot
+yyaxis right;
+u2 = stem(patientData.IIR.time, patientData.IIR.values, 'filled', 'o', 'Color', [251,142,2]/255,'MarkerSize', 2, 'LineWidth', lw);
+ylabel('Insulin [IU]');
+if use_true_patient
+    ylim([0,7])
+else
+    ylim([0,14])
+end
+xlim([t_start, t_end])
+hold on
+ax = gca;
+ax.YColor = 'k'; % Set color of left y-axis to black
+
+yyaxis left;
+u1 = stem(patientData.Meal.time, patientData.Meal.values, 'filled', 'square', 'Color', 'g','MarkerSize', 2, 'LineWidth', lw);
+ylabel('CHO [g]');
+if use_true_patient
+    ylim([0,60])
+else
+    ylim([0,90])
+end
+% xlim([t_start + seconds(1), t_end-seconds(1)])
+xlim([t_start, t_end])
+ax = gca;
+ax.YColor = 'k';
+
+xlabel('Time');
+lgd2 = legend([u1,u2], {'Meal', 'Insulin infused'});
+lgd2.Location = 'northoutside';
+lgd2.Orientation = 'horizontal';
+lgd2.Box = 'off';
+
+
+set(findall(gcf, '-property', 'FontSize'), 'FontSize', font_size);
+

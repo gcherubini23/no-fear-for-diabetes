@@ -77,8 +77,8 @@ Q = eye(13) * high_uncertainty;
 R = 100;
 
 ekf_dt = [0.001, 0.01, 0.1, 0.5, 1, 2, 3, 3.7, 4, 4.5, 4.7, 5]; % [min]
-% ekf_dt = [0.001, 0.01, 0.1, 0.5, 1, 2, 3, 3.7, 4, 4.5, 4.7, 5, 10]; % [min]
 
+% ekf_dt = [0.01, 0.1, 0.5, 1];
 
 model = non_linear_model(tools);
 ekf = ekf(model, tools, params, ekf_dt(1), Q, R);
@@ -206,7 +206,6 @@ for ig = 1:length(ekf_dt)
     hold on
 end
 % ylim([80, 400])
-ylim([0, 11])
 ylabel('I_l [pmol/kg]')
 
 RMSE
